@@ -1,0 +1,40 @@
+{
+  "name": "@jags111/raganotate",
+  "version": "0.1.1",
+  "description": "Full-Stack Carnatic Music Notation Engine — TypeScript/JS Library",
+  "main": "dist/index.js",
+  "module": "dist/index.esm.js",
+  "types": "dist/index.d.ts",
+  "author": "Jags <info@revsmartasia.com> (https://github.com/jags111)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jags111/RagaNotate.git"
+  },
+  "homepage": "https://github.com/jags111/RagaNotate",
+  "bugs": {
+    "url": "https://github.com/jags111/RagaNotate/issues"
+  },
+  "keywords": [
+    "carnatic", "music", "notation", "raga", "gamaka",
+    "tala", "indian-classical", "midi", "audio", "web-audio"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "lint": "eslint src --ext .ts",
+    "test": "jest",
+    "demo": "ts-node src/demo.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "ts-node": "^10.9.0",
+    "eslint": "^8.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "jest": "^29.0.0",
+    "@types/jest": "^29.0.0",
+    "ts-jest": "^29.0.0"
+  }
+}

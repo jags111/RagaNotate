@@ -1,0 +1,1279 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🎵 RagaNotate — Carnatic Notation System Workflow</title>
+<style>
+  :root {
+    --bg: #0f0e17;
+    --bg2: #1a1928;
+    --accent: #e8b86d;
+    --accent2: #c97d4e;
+    --teal: #4ecdc4;
+    --purple: #9b59b6;
+    --green: #2ecc71;
+    --red: #e74c3c;
+    --blue: #3498db;
+    --pink: #e91e8c;
+    --text: #fffffe;
+    --subtext: #a7a9be;
+    --border: #2d2c4e;
+    --card: #1e1d35;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', 'Helvetica Neue', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* HEADER */
+  .header {
+    background: linear-gradient(135deg, #1a1928 0%, #0f0e17 50%, #1e1028 100%);
+    border-bottom: 2px solid var(--accent);
+    padding: 24px 40px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-icon { font-size: 40px; }
+  .header h1 { font-size: 22px; color: var(--accent); letter-spacing: 1px; }
+  .header p { font-size: 13px; color: var(--subtext); margin-top: 3px; }
+  .header-badge {
+    margin-left: auto;
+    background: var(--accent2);
+    color: white;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+  }
+
+  /* TAB NAVIGATION */
+  .tabs {
+    display: flex;
+    gap: 4px;
+    padding: 16px 40px 0;
+    background: var(--bg2);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+  }
+  .tab {
+    padding: 10px 20px;
+    border-radius: 8px 8px 0 0;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--subtext);
+    border: 1px solid transparent;
+    border-bottom: none;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+  .tab:hover { color: var(--accent); }
+  .tab.active {
+    background: var(--bg);
+    color: var(--accent);
+    border-color: var(--border);
+  }
+
+  /* CONTENT */
+  .content { padding: 30px 40px; max-width: 1400px; margin: 0 auto; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* FLOW CHART */
+  .flow-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    padding: 20px 0;
+  }
+
+  .flow-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 100%;
+    flex-wrap: wrap;
+  }
+
+  .flow-node {
+    background: var(--card);
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 16px 20px;
+    min-width: 160px;
+    max-width: 220px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.25s;
+    position: relative;
+  }
+  .flow-node:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+  }
+  .flow-node.accent { border-color: var(--accent); }
+  .flow-node.teal { border-color: var(--teal); }
+  .flow-node.purple { border-color: var(--purple); }
+  .flow-node.green { border-color: var(--green); }
+  .flow-node.red { border-color: var(--red); }
+  .flow-node.blue { border-color: var(--blue); }
+  .flow-node.pink { border-color: var(--pink); }
+
+  .flow-node.accent:hover { background: rgba(232,184,109,0.1); }
+  .flow-node.teal:hover { background: rgba(78,205,196,0.1); }
+  .flow-node.purple:hover { background: rgba(155,89,182,0.1); }
+  .flow-node.green:hover { background: rgba(46,204,113,0.1); }
+  .flow-node.blue:hover { background: rgba(52,152,219,0.1); }
+  .flow-node.pink:hover { background: rgba(233,30,140,0.1); }
+
+  .node-icon { font-size: 24px; margin-bottom: 6px; }
+  .node-title { font-size: 13px; font-weight: 700; letter-spacing: 0.5px; }
+  .node-sub { font-size: 11px; color: var(--subtext); margin-top: 3px; }
+
+  .flow-arrow {
+    font-size: 22px;
+    color: var(--subtext);
+    margin: 2px 0;
+  }
+  .flow-arrow.down { display: flex; justify-content: center; }
+
+  /* START / END nodes */
+  .flow-node.start {
+    background: linear-gradient(135deg, #e8b86d, #c97d4e);
+    border-color: var(--accent);
+    color: #0f0e17;
+    border-radius: 50px;
+  }
+  .flow-node.start .node-title { color: #0f0e17; font-size: 15px; }
+  .flow-node.end {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    border-color: var(--green);
+    color: white;
+    border-radius: 50px;
+  }
+
+  /* SECTION LABELS */
+  .phase-label {
+    width: 100%;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    color: var(--subtext);
+    text-transform: uppercase;
+    padding: 8px 0 4px;
+    border-top: 1px dashed var(--border);
+    margin-top: 4px;
+  }
+
+  /* DETAIL POPUP */
+  .popup-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+  }
+  .popup-overlay.open { display: flex; }
+  .popup {
+    background: var(--card);
+    border: 2px solid var(--accent);
+    border-radius: 16px;
+    padding: 32px;
+    max-width: 560px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    position: relative;
+  }
+  .popup h2 { color: var(--accent); font-size: 18px; margin-bottom: 8px; }
+  .popup .popup-sub { color: var(--subtext); font-size: 12px; margin-bottom: 16px; }
+  .popup-close {
+    position: absolute;
+    top: 16px; right: 16px;
+    background: none;
+    border: none;
+    color: var(--subtext);
+    font-size: 20px;
+    cursor: pointer;
+  }
+  .popup-close:hover { color: var(--text); }
+
+  .popup-section { margin-top: 14px; }
+  .popup-section h3 { font-size: 13px; color: var(--teal); margin-bottom: 6px; }
+  .popup-section ul { list-style: none; padding: 0; }
+  .popup-section ul li {
+    font-size: 12px;
+    padding: 4px 0 4px 16px;
+    border-left: 2px solid var(--border);
+    margin-bottom: 4px;
+    color: var(--subtext);
+  }
+  .popup-section ul li::before { content: '→ '; color: var(--accent); }
+  .code-block {
+    background: #0a0a14;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: var(--teal);
+    margin-top: 8px;
+    white-space: pre-wrap;
+    overflow-x: auto;
+  }
+
+  /* TABLES */
+  .ref-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+    margin-top: 16px;
+  }
+  .ref-table th {
+    background: var(--border);
+    color: var(--accent);
+    padding: 10px 12px;
+    text-align: left;
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .ref-table td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    color: var(--subtext);
+  }
+  .ref-table tr:hover td { background: rgba(255,255,255,0.03); color: var(--text); }
+  .ref-table td:first-child { color: var(--text); font-weight: 600; }
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .badge-accent { background: rgba(232,184,109,0.2); color: var(--accent); }
+  .badge-teal { background: rgba(78,205,196,0.2); color: var(--teal); }
+  .badge-purple { background: rgba(155,89,182,0.2); color: var(--purple); }
+  .badge-green { background: rgba(46,204,113,0.2); color: var(--green); }
+
+  /* GRID LAYOUTS */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 16px; }
+
+  .info-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+  }
+  .info-card h3 { font-size: 13px; color: var(--accent); margin-bottom: 10px; }
+  .info-card p { font-size: 12px; color: var(--subtext); line-height: 1.6; }
+
+  /* LEGEND */
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin: 20px 0 10px;
+    padding: 14px 18px;
+    background: var(--bg2);
+    border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .legend-item { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--subtext); }
+  .legend-dot { width: 12px; height: 12px; border-radius: 3px; }
+
+  /* SWARA DISPLAY */
+  .swara-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 10px;
+    margin-top: 14px;
+  }
+  .swara-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+  }
+  .swara-symbol { font-size: 22px; font-weight: 700; font-family: monospace; }
+  .swara-name { font-size: 10px; color: var(--subtext); margin-top: 4px; }
+  .swara-phonetic { font-size: 11px; color: var(--teal); margin-top: 2px; }
+  .swara-ai { font-size: 9px; color: var(--purple); margin-top: 2px; }
+
+  /* GAMAKA CARDS */
+  .gamaka-list { display: flex; flex-direction: column; gap: 10px; margin-top: 14px; }
+  .gamaka-item {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .gamaka-symbol {
+    font-family: monospace;
+    font-size: 18px;
+    color: var(--accent);
+    min-width: 40px;
+    text-align: center;
+  }
+  .gamaka-info { flex: 1; }
+  .gamaka-name { font-size: 13px; font-weight: 600; }
+  .gamaka-desc { font-size: 11px; color: var(--subtext); margin-top: 2px; }
+  .gamaka-token { font-size: 10px; color: var(--purple); font-family: monospace; }
+
+  /* TALA VISUALIZATION */
+  .tala-display {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+    margin-top: 12px;
+  }
+  .tala-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+  .tala-beat {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 700;
+    font-family: monospace;
+  }
+  .beat-laghu { background: rgba(232,184,109,0.2); border: 1px solid var(--accent); color: var(--accent); }
+  .beat-dhrutam { background: rgba(78,205,196,0.2); border: 1px solid var(--teal); color: var(--teal); }
+  .beat-anudh { background: rgba(155,89,182,0.2); border: 1px solid var(--purple); color: var(--purple); }
+  .tala-name { font-size: 13px; font-weight: 700; margin-bottom: 6px; }
+  .tala-detail { font-size: 11px; color: var(--subtext); }
+
+  /* RESPONSIVE */
+  @media (max-width: 700px) {
+    .header { padding: 16px 20px; }
+    .content { padding: 20px; }
+    .tabs { padding: 12px 16px 0; }
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-icon">🎵</div>
+  <div>
+    <h1>🎵 RAGANOTATE — Carnatic Notation System</h1>
+    <p>Full-Stack Raga Notation Engine · Swaras · Gamakas · Talas · AI Encoding</p>
+  </div>
+  <div class="header-badge">v1.0 · 2026</div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="showPanel('workflow')">📊 Workflow</div>
+  <div class="tab" onclick="showPanel('swaras')">🎼 Swaras</div>
+  <div class="tab" onclick="showPanel('gamakas')">🌀 Gamakas</div>
+  <div class="tab" onclick="showPanel('talas')">🥁 Talas</div>
+  <div class="tab" onclick="showPanel('notation')">📝 Notation</div>
+  <div class="tab" onclick="showPanel('roadmap')">🗺️ Roadmap</div>
+</div>
+
+<!-- ====================== WORKFLOW PANEL ====================== -->
+<div class="content">
+<div class="panel active" id="panel-workflow">
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--accent)"></div> Input / Source</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--teal)"></div> Core Engine</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div> AI / ML Layer</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Output</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div> Storage / Export</div>
+    <p style="font-size:11px;color:var(--subtext);margin-left:auto">Click any node for details</p>
+  </div>
+
+  <div class="flow-container">
+
+    <!-- START -->
+    <div class="flow-row">
+      <div class="flow-node start" onclick="openPopup('input')">
+        <div class="node-icon">🎵</div>
+        <div class="node-title">CARNATIC COMPOSITION</div>
+        <div class="node-sub">Lyrics + Swaras (input)</div>
+      </div>
+    </div>
+
+    <div class="flow-arrow down">↓</div>
+
+    <!-- NOTATION STANDARD -->
+    <div class="phase-label">① NOTATION ENCODING</div>
+    <div class="flow-row">
+      <div class="flow-node accent" onclick="openPopup('octave')">
+        <div class="node-icon">🎹</div>
+        <div class="node-title">OCTAVE SYSTEM</div>
+        <div class="node-sub">Mandra · Madhya · Tara</div>
+      </div>
+      <div style="font-size:18px;color:var(--subtext)">+</div>
+      <div class="flow-node accent" onclick="openPopup('swara16')">
+        <div class="node-icon">🎶</div>
+        <div class="node-title">16 SWARASTHANAS</div>
+        <div class="node-sub">Phonetic: Ra/Ri/Ru system</div>
+      </div>
+      <div style="font-size:18px;color:var(--subtext)">+</div>
+      <div class="flow-node accent" onclick="openPopup('duration')">
+        <div class="node-icon">⏱</div>
+        <div class="node-title">DURATION MARKERS</div>
+        <div class="node-sub">S | S; | S: | S::</div>
+      </div>
+    </div>
+
+    <div class="flow-arrow down">↓</div>
+
+    <!-- GAMAKA LAYER -->
+    <div class="phase-label">② GAMAKA ORNAMENTATION</div>
+    <div class="flow-row">
+      <div class="flow-node teal" onclick="openPopup('kampita')">
+        <div class="node-icon">〰️</div>
+        <div class="node-title">KAMPITA</div>
+        <div class="node-sub">~~ vibrato oscillation</div>
+      </div>
+      <div class="flow-node teal" onclick="openPopup('jaru')">
+        <div class="node-icon">↗️</div>
+        <div class="node-title">JARU (Slides)</div>
+        <div class="node-sub">^ up · v down</div>
+      </div>
+      <div class="flow-node teal" onclick="openPopup('nokku')">
+        <div class="node-icon">💥</div>
+        <div class="node-title">NOKKU / SPHURITA</div>
+        <div class="node-sub">* stress · (^) grace</div>
+      </div>
+      <div class="flow-node teal" onclick="openPopup('andola')">
+        <div class="node-icon">🌊</div>
+        <div class="node-title">ANDOLA & MORE</div>
+        <div class="node-sub">15 gamakas total</div>
+      </div>
+    </div>
+
+    <div class="flow-arrow down">↓</div>
+
+    <!-- TALA LAYER -->
+    <div class="phase-label">③ TALA (RHYTHM) LAYER</div>
+    <div class="flow-row">
+      <div class="flow-node purple" onclick="openPopup('angas')">
+        <div class="node-icon">🥁</div>
+        <div class="node-title">ANGA SYSTEM</div>
+        <div class="node-sub">U · O · l (anudh/dhru/laghu)</div>
+      </div>
+      <div class="flow-node purple" onclick="openPopup('talas7')">
+        <div class="node-icon">🔢</div>
+        <div class="node-title">SULADI SAPTA TALAS</div>
+        <div class="node-sub">7 × 5 = 35 talas</div>
+      </div>
+      <div class="flow-node purple" onclick="openPopup('chapu')">
+        <div class="node-icon">🎯</div>
+        <div class="node-title">CHAPU TALAS</div>
+        <div class="node-sub">3 · 5 · 7 · 9 beat patterns</div>
+      </div>
+    </div>
+
+    <div class="flow-arrow down">↓</div>
+
+    <!-- PARSER ENGINE -->
+    <div class="phase-label">④ PARSER ENGINE (TypeScript + Python)</div>
+    <div class="flow-row">
+      <div class="flow-node teal" onclick="openPopup('lexer')">
+        <div class="node-icon">🔤</div>
+        <div class="node-title">LEXER</div>
+        <div class="node-sub">Tokenize notation string</div>
+      </div>
+      <div style="font-size:18px;color:var(--subtext)">→</div>
+      <div class="flow-node teal" onclick="openPopup('parser')">
+        <div class="node-icon">🌳</div>
+        <div class="node-title">PARSER</div>
+        <div class="node-sub">Build AST phrase tree</div>
+      </div>
+      <div style="font-size:18px;color:var(--subtext)">→</div>
+      <div class="flow-node teal" onclick="openPopup('validator')">
+        <div class="node-icon">✅</div>
+        <div class="node-title">RAGA VALIDATOR</div>
+        <div class="node-sub">Check swara grammar</div>
+      </div>
+    </div>
+
+    <div class="flow-arrow down">↓</div>
+
+    <!-- AI LAYER -->
+    <div class="phase-label">⑤ AI / ML ENCODING LAYER</div>
+    <div class="flow-row">
+      <div class="flow-node purple" onclick="openPopup('aitoken')">
+        <div class="node-icon">🤖</div>
+        <div class="node-title">AI TOKENIZER</div>
+        <div class="node-sub">SA_0, RI_2, GMK_KAMP…</div>
+      </div>
+      <div class="flow-node purple" onclick="openPopup('gamakavec')">
+        <div class="node-icon">📐</div>
+        <div class="node-title">GAMAKA VECTORS</div>
+        <div class="node-sub">6-dim pitch curve features</div>
+      </div>
+      <div class="flow-node purple" onclick="openPopup('midi')">
+        <div class="node-icon">🎛</div>
+        <div class="node-title">MIDI / PITCH MAP</div>
+        <div class="node-sub">Swara → Hz + pitch bend</div>
+      </div>
+    </div>
+
+    <div class="flow-arrow down">↓</div>
+
+    <!-- OUTPUT LAYER -->
+    <div class="phase-label">⑥ OUTPUT LAYER</div>
+    <div class="flow-row">
+      <div class="flow-node green" onclick="openPopup('svg')">
+        <div class="node-icon">🖼</div>
+        <div class="node-title">SVG RENDERER</div>
+        <div class="node-sub">Web notation display</div>
+      </div>
+      <div class="flow-node green" onclick="openPopup('webui')">
+        <div class="node-icon">💻</div>
+        <div class="node-title">WEB UI EDITOR</div>
+        <div class="node-sub">Live notation editor</div>
+      </div>
+      <div class="flow-node blue" onclick="openPopup('export')">
+        <div class="node-icon">📦</div>
+        <div class="node-title">EXPORT</div>
+        <div class="node-sub">MIDI · JSON · PDF · MusicXML</div>
+      </div>
+      <div class="flow-node blue" onclick="openPopup('dataset')">
+        <div class="node-icon">📊</div>
+        <div class="node-title">AI DATASET</div>
+        <div class="node-sub">HuggingFace ready</div>
+      </div>
+    </div>
+
+    <div class="flow-arrow down">↓</div>
+
+    <!-- END -->
+    <div class="flow-row">
+      <div class="flow-node end">
+        <div class="node-icon">🚀</div>
+        <div class="node-title">RAGANOTATE ENGINE</div>
+        <div class="node-sub">github.com/jags111/RagaNotate</div>
+      </div>
+    </div>
+
+  </div><!-- end flow-container -->
+</div><!-- end panel-workflow -->
+
+<!-- ====================== SWARAS PANEL ====================== -->
+<div class="panel" id="panel-swaras">
+  <h2 style="color:var(--accent);margin-bottom:6px">16 Swarasthanas — Complete Reference</h2>
+  <p style="color:var(--subtext);font-size:13px;margin-bottom:16px">All 16 tonal positions with your notation standard, phonetic AI encoding, and Carnot symbols.</p>
+
+  <div class="grid-3">
+    <div class="info-card" style="border-color:var(--accent)">
+      <h3>🎹 MANDRA STHAYI (Lower)</h3>
+      <p>Prefix: <code style="color:var(--teal)">.s .r .g .m .p .d .n</code><br>
+      Lower octave — about 1 octave below Madhya.</p>
+    </div>
+    <div class="info-card" style="border-color:var(--teal)">
+      <h3>🎼 MADHYA STHAYI (Middle)</h3>
+      <p>Prefix: <code style="color:var(--teal)">S R G M P D N</code><br>
+      The home octave — most compositions are written here.</p>
+    </div>
+    <div class="info-card" style="border-color:var(--purple)">
+      <h3>🎵 TARA STHAYI (Upper)</h3>
+      <p>Prefix: <code style="color:var(--teal)">S' R' G' M' P' D' N'</code><br>
+      Upper octave — soprano range.</p>
+    </div>
+  </div>
+
+  <div class="swara-grid" style="margin-top:20px">
+    <div class="swara-card"><div class="swara-symbol" style="color:var(--accent)">S</div><div class="swara-name">Shadjam</div><div class="swara-phonetic">Sa</div><div class="swara-ai">SA_0</div></div>
+    <div class="swara-card"><div class="swara-symbol" style="color:var(--teal)">r</div><div class="swara-name">Suddha Rishabham</div><div class="swara-phonetic">Ra</div><div class="swara-ai">RI_1</div></div>
+    <div class="swara-card"><div class="swara-symbol" style="color:var(--teal)">R</div><div class="swara-name">Chatusruti Rishabham</div><div class="swara-phonetic">Ri</div><div class="swara-ai">RI_2</div></div>
+    <div class="swara-card"><div class="swara-symbol" style="color:var(--teal)">g</div><div class="swara-name">Sadharana Gandharam</div><div class="swara-phonetic">Gi</div><div class="swara-ai">GA_2</div></div>
+    <div class="swara-card"><div class="swara-symbol" style="color:var(--teal)">G</div><div class="swara-name">Antara Gandharam</div><div class="swara-phonetic">Gu</div><div class="swara-ai">GA_3</div></div>
+    <div class="swara-card"><div class="swara-symbol" style="color:var(--purple)">m</div><div class="swara-name">Suddha Madhyamam</div><div class="swara-phonetic">Ma</div><div class="swara-ai">MA_1</div></div>
+    <div class="swara-card"><div class="swara-symbol" style="color:var(--purple)">M</div><div class="swara-name">Prati Madhyamam</div><div class="swara-phonetic">Mi</div><div class="swara-ai">MA_2</div></div>
+    <div class="swara-card"><div class="swara-symbol" style="color:var(--accent)">P</div><div class="swara-name">Panchamam</div><div class="swara-phonetic">Pa</div><div class="swara-ai">PA_0</div></div>
+    <div class="swara-card"><div class="swara-symbol" style="color:var(--green)">d</div><div class="swara-name">Suddha Dhaivatam</div><div class="swara-phonetic">Da</div><div class="swara-ai">DA_1</div></div>
+    <div class="swara-card"><div class="swara-symbol" style="color:var(--green)">D</div><div class="swara-name">Chatusruti Dhaivatam</div><div class="swara-phonetic">Di</div><div class="swara-ai">DA_2</div></div>
+    <div class="swara-card"><div class="swara-symbol" style="color:var(--blue)">n</div><div class="swara-name">Kaisika Nishadam</div><div class="swara-phonetic">Ni</div><div class="swara-ai">NI_2</div></div>
+    <div class="swara-card"><div class="swara-symbol" style="color:var(--blue)">N</div><div class="swara-name">Kakali Nishadam</div><div class="swara-phonetic">Nu</div><div class="swara-ai">NI_3</div></div>
+  </div>
+
+  <div style="margin-top:20px;padding:16px;background:var(--bg2);border-radius:10px;border:1px solid var(--border)">
+    <h3 style="color:var(--accent);font-size:13px;margin-bottom:8px">Frequency Ratios — Sa = 240 Hz (traditional) or Sa = 261.63 Hz (C4)</h3>
+    <div class="code-block">Sym   Ratio     Hz@240    Hz@261.63   AI Token
+────────────────────────────────────────────
+S     1/1       240.00    261.63      SA_0     ← Achala (fixed)
+r     256/243   252.84    275.62      RI_1
+R     9/8       270.00    294.33      RI_2
+g     32/27     284.44    309.87      GA_1
+G     6/5       288.00    313.96      GA_2
+G+    5/4       300.00    327.04      GA_3
+m     4/3       320.00    348.83      MA_1
+M     45/32     337.50    367.92      MA_2
+P     3/2       360.00    392.44      PA_0     ← Achala (fixed)
+d     128/81    379.26    413.43      DA_1
+D     5/3       400.00    436.05      DA_2
+n     16/9      426.67    465.11      NI_1
+N     9/5       432.00    470.93      NI_2     ← 432 Hz @ Sa=240
+N+    15/8      450.00    490.55      NI_3
+S'    2/1       480.00    523.25      SA_0_HI  ← Achala (fixed)
+
+AI token format:  {octave}_{swara}_{variant}
+  LO_ = mandra · MD_ = madhya · HI_ = tara
+  Example: HI_RI_2 = Chatusruti Ri in Tara Sthayi</div>
+  </div>
+</div>
+
+<!-- ====================== GAMAKAS PANEL ====================== -->
+<div class="panel" id="panel-gamakas">
+  <h2 style="color:var(--teal);margin-bottom:6px">15 Gamakas — Complete AI Encoding</h2>
+  <p style="color:var(--subtext);font-size:13px;margin-bottom:16px">All 15 classical gamakas from Sangita Sampradaya Pradarshini with notation symbols, AI tokens, and pitch curve types.</p>
+
+  <div class="gamaka-list">
+    <div class="gamaka-item"><div class="gamaka-symbol">~~</div><div class="gamaka-info"><div class="gamaka-name">1. Kampita (कम्पित)</div><div class="gamaka-desc">Vibrato oscillation between adjacent svaras. Like Western vibrato.</div><div class="gamaka-token">GMK_KAMP · curve_type: 3 (oscillate)</div></div><span class="badge badge-teal">Vocal + Veena</span></div>
+    <div class="gamaka-item"><div class="gamaka-symbol">~^~</div><div class="gamaka-info"><div class="gamaka-name">2. Andola (आन्दोल)</div><div class="gamaka-desc">Wide slow oscillation. Pitch meanders between neighbours — target svara not sounded directly.</div><div class="gamaka-token">GMK_ANDO · curve_type: 4 (wide_oscillate)</div></div><span class="badge badge-teal">Vocal</span></div>
+    <div class="gamaka-item"><div class="gamaka-symbol">(^)</div><div class="gamaka-info"><div class="gamaka-name">3. Sphurita (स्फुरित)</div><div class="gamaka-desc">Grace note from above — touch upper svara, land on target. Used in arohana.</div><div class="gamaka-token">GMK_SPHU · curve_type: 5 (grace_up)</div></div><span class="badge badge-accent">Both</span></div>
+    <div class="gamaka-item"><div class="gamaka-symbol">(v)</div><div class="gamaka-info"><div class="gamaka-name">4. Pratyaghata (प्रत्याघात)</div><div class="gamaka-desc">Reverse grace — touch lower svara, land on target. Used in avarohana.</div><div class="gamaka-token">GMK_PRAT · curve_type: 6 (grace_down)</div></div><span class="badge badge-accent">Both</span></div>
+    <div class="gamaka-item"><div class="gamaka-symbol">*</div><div class="gamaka-info"><div class="gamaka-name">5. Nokku (நொக்கு)</div><div class="gamaka-desc">Stress accent — sudden forceful articulation of a note. Attack emphasis.</div><div class="gamaka-token">GMK_NOKK · curve_type: 7 (accent)</div></div><span class="badge badge-purple">Veena</span></div>
+    <div class="gamaka-item"><div class="gamaka-symbol">^</div><div class="gamaka-info"><div class="gamaka-name">6. Etra Jaru (ஏற்ற ஜரு)</div><div class="gamaka-desc">Upward glide / portamento — slides from a lower pitch up to the target svara.</div><div class="gamaka-token">GMK_EJRU · curve_type: 1 (linear_up)</div></div><span class="badge badge-accent">Both</span></div>
+    <div class="gamaka-item"><div class="gamaka-symbol">v</div><div class="gamaka-info"><div class="gamaka-name">7. Irakka Jaru (இறக்க ஜரு)</div><div class="gamaka-desc">Downward glide / portamento — slides from a higher pitch down to the target svara.</div><div class="gamaka-token">GMK_IJRU · curve_type: 2 (linear_down)</div></div><span class="badge badge-accent">Both</span></div>
+    <div class="gamaka-item"><div class="gamaka-symbol">{or}</div><div class="gamaka-info"><div class="gamaka-name">8. Orikkai (ஒரிக்கை)</div><div class="gamaka-desc">Subtle flick/ornament — primarily a veena left-hand technique.</div><div class="gamaka-token">GMK_ORIK · curve_type: 9 (complex)</div></div><span class="badge badge-purple">Veena only</span></div>
+    <div class="gamaka-item"><div class="gamaka-symbol">{ot}</div><div class="gamaka-info"><div class="gamaka-name">9. Othukkal (ஒதுக்கல்)</div><div class="gamaka-desc">Pushing/pressing ornament — note pushed and held against string.</div><div class="gamaka-token">GMK_OTHU · curve_type: 9 (complex)</div></div><span class="badge badge-purple">Veena only</span></div>
+    <div class="gamaka-item"><div class="gamaka-symbol">{tr}</div><div class="gamaka-info"><div class="gamaka-name">10. Tribhinna (त्रिभिन्न)</div><div class="gamaka-desc">Three-string technique on veena — flattened finger pressed on three strings simultaneously.</div><div class="gamaka-token">GMK_TRIB · curve_type: 9 (complex)</div></div><span class="badge badge-purple">Veena only</span></div>
+    <div class="gamaka-item"><div class="gamaka-symbol">{mu}</div><div class="gamaka-info"><div class="gamaka-name">11. Mudrita (मुद्रित)</div><div class="gamaka-desc">Mouth-closed ornament — muffled, nasal sound. Vocal music only.</div><div class="gamaka-token">GMK_MUDR · curve_type: 9 (complex)</div></div><span class="badge badge-green">Vocal only</span></div>
+    <div class="gamaka-item"><div class="gamaka-symbol">{nm}</div><div class="gamaka-info"><div class="gamaka-name">12. Namita (नमित)</div><div class="gamaka-desc">Decreasing volume ornament — gentle fading of a note to near silence.</div><div class="gamaka-token">GMK_NAMI · curve_type: 8 (fade)</div></div><span class="badge badge-accent">Both</span></div>
+    <div class="gamaka-item"><div class="gamaka-symbol">{mx}</div><div class="gamaka-info"><div class="gamaka-name">13. Misrita (मिश्रित)</div><div class="gamaka-desc">Mixed gamaka — a blend of two gamaka types applied to one note.</div><div class="gamaka-token">GMK_MISR · curve_type: 9 (complex)</div></div><span class="badge badge-accent">Both</span></div>
+    <div class="gamaka-item"><div class="gamaka-symbol">=</div><div class="gamaka-info"><div class="gamaka-name">14. Ahata (आहत)</div><div class="gamaka-desc">Direct struck note — full attack, no embellishment. The svara as written.</div><div class="gamaka-token">GMK_AHAT · curve_type: 0 (flat)</div></div><span class="badge badge-accent">Both</span></div>
+    <div class="gamaka-item"><div class="gamaka-symbol">{ul}</div><div class="gamaka-info"><div class="gamaka-name">15. Ullasita (उल्लसित)</div><div class="gamaka-desc">Sparkling ornament — rapid mordent-like movement with joyful character.</div><div class="gamaka-token">GMK_ULLA · curve_type: 9 (complex)</div></div><span class="badge badge-accent">Both</span></div>
+  </div>
+</div>
+
+<!-- ====================== TALAS PANEL ====================== -->
+<div class="panel" id="panel-talas">
+  <h2 style="color:var(--purple);margin-bottom:6px">Tala System — Anga Notation</h2>
+  <p style="color:var(--subtext);font-size:13px;margin-bottom:16px">Suladi Sapta Talas (7 × 5 = 35 talas), Chapu Talas, and the 108 extended system with full anga symbols.</p>
+
+  <div class="grid-3">
+    <div class="info-card" style="border-color:var(--accent)">
+      <h3>U · Anudhrutam</h3>
+      <p>1 akshara · Palm-down clap</p>
+    </div>
+    <div class="info-card" style="border-color:var(--teal)">
+      <h3>O · Dhrutam</h3>
+      <p>2 aksharas · Down + up clap</p>
+    </div>
+    <div class="info-card" style="border-color:var(--purple)">
+      <h3>l · Laghu</h3>
+      <p>Variable · Clap + finger count · 3/4/5/7/9 beats by jaati</p>
+    </div>
+  </div>
+
+  <div style="margin-top:20px">
+    <h3 style="color:var(--accent);font-size:14px;margin-bottom:12px">Suladi Sapta Talas — Beat Patterns</h3>
+
+    <div class="tala-display">
+      <div class="tala-name">🎵 ADI TALA (most common) — Chatusra Triputa</div>
+      <div class="tala-detail">Pattern: l4 O O · 8 aksharas</div>
+      <div class="tala-row">
+        <div class="tala-beat beat-laghu">1</div><div class="tala-beat beat-laghu">2</div><div class="tala-beat beat-laghu">3</div><div class="tala-beat beat-laghu">4</div>
+        <div class="tala-beat beat-dhrutam">5</div><div class="tala-beat beat-dhrutam">6</div>
+        <div class="tala-beat beat-dhrutam">7</div><div class="tala-beat beat-dhrutam">8</div>
+        <span style="font-size:11px;color:var(--subtext);margin-left:8px;align-self:center">l4 · O · O</span>
+      </div>
+    </div>
+
+    <div class="tala-display" style="margin-top:10px">
+      <div class="tala-name">🎵 RUPAKA TALA — 2nd most common</div>
+      <div class="tala-detail">Pattern: O l4 · 6 aksharas</div>
+      <div class="tala-row">
+        <div class="tala-beat beat-dhrutam">1</div><div class="tala-beat beat-dhrutam">2</div>
+        <div class="tala-beat beat-laghu">3</div><div class="tala-beat beat-laghu">4</div><div class="tala-beat beat-laghu">5</div><div class="tala-beat beat-laghu">6</div>
+      </div>
+    </div>
+
+    <div class="tala-display" style="margin-top:10px">
+      <div class="tala-name">🎵 MISRA CHAPU — Popular folk/devotional</div>
+      <div class="tala-detail">Pattern: 3+4 · 7 beats</div>
+      <div class="tala-row">
+        <div class="tala-beat beat-anudh">1</div><div class="tala-beat beat-anudh">2</div><div class="tala-beat beat-anudh">3</div>
+        <div class="tala-beat beat-dhrutam">4</div><div class="tala-beat beat-dhrutam">5</div><div class="tala-beat beat-dhrutam">6</div><div class="tala-beat beat-dhrutam">7</div>
+      </div>
+    </div>
+  </div>
+
+  <table class="ref-table" style="margin-top:20px">
+    <tr><th>Tala</th><th>Anga Pattern</th><th>Aksharas (Chatusra)</th><th>Example Composition</th></tr>
+    <tr><td>Dhruva</td><td><code>l O l l</code></td><td>14</td><td>Many varnams</td></tr>
+    <tr><td>Matya</td><td><code>l O l</code></td><td>10</td><td>Matya talas pieces</td></tr>
+    <tr><td>Rupaka</td><td><code>O l</code></td><td>6</td><td>Bhairavi kritis</td></tr>
+    <tr><td>Jhampa</td><td><code>l U O</code></td><td>7</td><td>Jhampa compositions</td></tr>
+    <tr><td><strong>Triputa (Adi)</strong></td><td><code>l O O</code></td><td><strong>8</strong></td><td><strong>~50% of repertoire</strong></td></tr>
+    <tr><td>Ata</td><td><code>l l O O</code></td><td>14</td><td>Ata tala varnams</td></tr>
+    <tr><td>Eka</td><td><code>l</code></td><td>4</td><td>Simple practice pieces</td></tr>
+  </table>
+</div>
+
+<!-- ====================== NOTATION PANEL ====================== -->
+<div class="panel" id="panel-notation">
+  <h2 style="color:var(--accent);margin-bottom:6px">Notation Quick Reference</h2>
+  <p style="color:var(--subtext);font-size:13px;margin-bottom:16px">Complete notation system with examples. Based on Jags' notation standard.</p>
+
+  <div class="code-block" style="font-size:13px;line-height:2">
+┌─────────────────────────────────────────────────────────────┐
+│                  CARNATIC NOTATION STANDARD                 │
+│                    Author: Jags (jags111)                   │
+└─────────────────────────────────────────────────────────────┘
+
+OCTAVE SYSTEMS
+──────────────
+TARA  STHAYI:  S'  R'  G'  M'  P'  D'  N'    (Upper octave)
+MADHYA STHAYI: S   R   G   M   P   D   N     (Middle octave)
+MANDRA STHAYI: .s  .r  .g  .m  .p  .d  .n   (Lower octave)
+
+SWARASTHANA SYMBOLS (12 chromatic positions)
+─────────────────────────────────────────────
+S  r  R  g  G  m  M  P  d  D  n  N
+Sa Ra Ri Gi Gu Ma Mi Pa Da Di Na Ni   ← Phonetic (AI)
+
+DURATION MARKERS
+────────────────
+S     = 1 akshara  (full beat)
+S;    = 2 aksharas (double)
+S:    = ½ akshara  (half)
+S::   = ¼ akshara  (quarter)
+-     = rest (silence)
+,     = visible time gap
+_     = invisible gap (grace timing)
+
+BEAT & SECTION MARKERS
+───────────────────────
+|     = beat / avartanam marker
+||    = end of section
+|||   = end of composition
+
+GAMAKA SYMBOLS
+──────────────
+~~    = kampita (vibrato)
+^     = etra jaru (slide up)
+v     = irakka jaru (slide down)
+~^~   = andola (wide oscillation)
+(^)   = sphurita (grace from above)
+(v)   = pratyaghata (grace from below)
+*     = nokku (stress accent)
+=     = ahata (plain note, no ornament)
+{or}  = orikkai  {ot} = othukkal
+{mu}  = mudrita  {nm} = namita
+{mx}  = misrita  {ul} = ullasita
+
+TALA SYMBOLS
+────────────
+U     = anudhrutam (1 beat)
+O     = dhrutam (2 beats)
+l3    = laghu tisra (3)    l4 = laghu chatusra (4)
+l5    = laghu khanda (5)   l7 = laghu misra (7)
+l9    = laghu sankeerna (9)
+
+EXAMPLE NOTATION (Adi Tala, Madhya Sthayi, Mohanam Raga)
+──────────────────────────────────────────────────────────
+tala: Adi | jaati: Chatusra | raga: Mohanam | speed: madhyama
+
+| S  R  G  P  | D  S' S' D | P  G  R  S  | S, -  -  - |
+| ya -  -  mu | na -  ka  - | la -  ya -  | di -  pa - |
+
+DESCRIPTIVE NOTATION (with gamakas)
+─────────────────────────────────────
+| S  R~~ G  P  | D^^S' S'~~ D | P  v G  R  S  |
+  ↑Ahata  ↑Kamp   ↑Etra Jaru Kamp  ↑Irakka Jaru</div>
+
+</div>
+
+<!-- ====================== ROADMAP PANEL ====================== -->
+<div class="panel" id="panel-roadmap">
+  <h2 style="color:var(--green);margin-bottom:6px">Implementation Roadmap</h2>
+  <p style="color:var(--subtext);font-size:13px;margin-bottom:16px">6-phase implementation plan for the full-stack notation system.</p>
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div class="info-card" style="border-color:var(--accent)">
+      <h3>✅ Phase 1 — Core Specification (Weeks 1–2)</h3>
+      <p>SPEC.md · PHONETICS.md · GAMAKAS.md · TALAS.md · todo.md (this file) · Workflow chart</p>
+    </div>
+    <div class="info-card" style="border-color:var(--teal)">
+      <h3>📦 Phase 2 — TypeScript/JS Library (Weeks 3–5)</h3>
+      <p>Lexer → Parser → AST · Gamaka engine (pitch contour functions) · SVG renderer · Tala beat generator · npm package</p>
+    </div>
+    <div class="info-card" style="border-color:var(--blue)">
+      <h3>🐍 Phase 3 — Python Package (Weeks 4–6)</h3>
+      <p>carnatic_notation pip package · swara.py · gamaka.py · tala.py · parser.py · MIDI export · AI tokenizer</p>
+    </div>
+    <div class="info-card" style="border-color:var(--purple)">
+      <h3>💻 Phase 4 — Web UI (Weeks 6–8)</h3>
+      <p>Live notation editor · CodeMirror syntax highlighting · Real-time SVG preview · Gamaka pitch contour graph · Tala beat clock · Raga validator</p>
+    </div>
+    <div class="info-card" style="border-color:var(--green)">
+      <h3>🐙 Phase 5 — GitHub Repository (Weeks 8–9)</h3>
+      <p>github.com/jags111/RagaNotate · README · Examples folder · CI/CD GitHub Actions · npm + PyPI publish</p>
+    </div>
+    <div class="info-card" style="border-color:var(--pink)">
+      <h3>🤖 Phase 6 — AI Dataset (Weeks 9–12)</h3>
+      <p>50+ annotated compositions · Gamaka classification dataset · train/test split · HuggingFace datasets publish</p>
+    </div>
+  </div>
+
+  <div style="margin-top:20px;padding:16px;background:var(--bg2);border-radius:10px;border:1px solid var(--border)">
+    <h3 style="color:var(--accent);font-size:13px;margin-bottom:8px">GitHub Repository: github.com/jags111/RagaNotate</h3>
+    <div class="code-block">RagaNotate/
+├── README.md              # Quickstart guide
+├── SPEC.md                # Full notation spec
+├── todo.md                # This master plan
+├── spec/
+│   ├── PHONETICS.md       # 16 swarasthanas
+│   ├── GAMAKAS.md         # 15 gamakas
+│   └── TALAS.md           # Tala system
+├── packages/
+│   ├── js/src/            # TypeScript library
+│   └── python/carnatic_notation/   # Python package
+├── web/                   # Web UI
+├── examples/              # Sample compositions
+└── dataset/               # AI training data</div>
+  </div>
+</div>
+
+</div><!-- end content -->
+
+<!-- ====================== POPUP ====================== -->
+<div class="popup-overlay" id="popupOverlay" onclick="closePopup(event)">
+  <div class="popup" id="popupContent">
+    <button class="popup-close" onclick="closePopup()">✕</button>
+    <h2 id="popupTitle">Detail</h2>
+    <div class="popup-sub" id="popupSub"></div>
+    <div id="popupBody"></div>
+  </div>
+</div>
+
+<script>
+// TAB SWITCHING
+function showPanel(name) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + name).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// POPUP DATA
+const popupData = {
+  input: {
+    title: '🎵 Carnatic Composition Input',
+    sub: 'Source material for the notation system',
+    body: `<div class="popup-section"><h3>What goes in</h3><ul>
+      <li>Song lyrics in Tamil/Telugu/Sanskrit/Kannada</li>
+      <li>Swara notation (Sa Ri Ga Ma Pa Da Ni)</li>
+      <li>Raga name (defines allowed swarasthanas)</li>
+      <li>Tala name (defines rhythmic cycle)</li>
+      <li>Speed (Prathama / Dwithiya / Thrithiya kalam)</li>
+    </ul></div>
+    <div class="code-block">raga: Mohanam
+tala: Adi
+speed: madhyama
+| S R G P | D S' S' D | P G R S |
+| ya - - mu | na - ka - | la ya di - |</div>`
+  },
+  octave: {
+    title: '🎹 Three Octave System',
+    sub: 'Mandra · Madhya · Tara Sthayi — Jags\' notation standard',
+    body: `<div class="code-block">TARA  STHAYI (Upper): S'  R'  G'  M'  P'  D'  N'
+MADHYA STHAYI (Mid):  S   R   G   M   P   D   N
+MANDRA STHAYI (Low): .s  .r  .g  .m  .p  .d  .n</div>
+    <div class="popup-section"><h3>Usage Notes</h3><ul>
+      <li>Apostrophe (') marks Tara Sthayi</li>
+      <li>Period (.) prefix marks Mandra Sthayi</li>
+      <li>No marker = Madhya Sthayi (default)</li>
+      <li>AI token prefix: HI_ / MD_ / LO_</li>
+    </ul></div>`
+  },
+  swara16: {
+    title: '🎶 16 Swarasthanas — Frequency Ratios',
+    sub: 'Just Intonation · Adhara Shadjam relative system',
+    body: `<div class="popup-section"><h3>⚖️ Key Principle</h3><ul>
+      <li>Sa (Adhara Shadjam) is RELATIVE — not absolute pitch</li>
+      <li>All frequencies are ratios of the chosen Sa</li>
+      <li>Common Sa: 240 Hz · 256 Hz · 261.63 Hz (C4)</li>
+    </ul></div>
+    <div class="code-block">Sym  Phonetic  Ratio    Hz@240   Hz@261.63   Name
+─────────────────────────────────────────────────────
+S    Sa        1/1      240.00   261.63    Shadjam       ← FIXED
+r    Ra        256/243  252.84   275.62    Suddha Ri
+R    Ri        9/8      270.00   294.33    Chatusruti Ri
+g    Ga        32/27    284.44   309.87    Suddha Ga
+G    Gi        6/5      288.00   313.96    Sadharana Ga
+G+   Gu        5/4      300.00   327.04    Antara Ga
+m    Ma        4/3      320.00   348.83    Suddha Ma
+M    Mi        45/32    337.50   367.92    Prati Ma
+P    Pa        3/2      360.00   392.44    Panchamam     ← FIXED
+d    Da        128/81   379.26   413.43    Suddha Dha
+D    Di        5/3      400.00   436.05    Chatusruti Dha
+n    Na        16/9     426.67   465.11    Suddha Ni
+N    Ni        9/5      432.00   470.93    Kaisika Ni ★
+N+   Nu        15/8     450.00   490.55    Kakali Ni
+S'   Sa'       2/1      480.00   523.25    Upper Sa      ← FIXED
+
+★ 432 Hz = Kaisika Ni (9/5 × 240)
+  Kakali Ni (15/8 × 240) = 450 Hz</div>
+    <div class="popup-section"><h3>Vowel Rule (AI Phonetics)</h3><ul>
+      <li>Suffix 'a' → Suddha (lower) variant: Ra, Da, Na</li>
+      <li>Suffix 'i' → Chatusruti (middle): Ri, Gi, Di, Ni</li>
+      <li>Suffix 'u' → Kakali/Shatsruti: Nu (Kakali Ni)</li>
+    </ul></div>`
+  },
+  duration: {
+    title: '⏱ Duration & Timing Markers',
+    sub: 'Akshara-based timing system',
+    body: `<div class="code-block">S    = 1 akshara   (full beat)
+S;   = 2 aksharas  (double duration)
+S:   = ½ akshara   (half beat)
+S::  = ¼ akshara   (quarter beat)
+-    = rest / silence
+,    = visible timing gap
+_    = invisible gap (grace note timing)
+|    = avartanam (beat cycle) marker
+||   = section end
+|||  = composition end</div>`
+  },
+  kampita: {
+    title: '〰️ Kampita Gamaka',
+    sub: 'The most common gamaka in Carnatic music',
+    body: `<div class="popup-section"><h3>Definition</h3><ul>
+      <li>Oscillation between a svara and its adjacent svaras</li>
+      <li>Similar to Western vibrato but pitch-specific</li>
+      <li>On veena: shake the string with left hand</li>
+      <li>Each raga defines which svaras take Kampita</li>
+    </ul></div>
+    <div class="code-block">Symbol:  ~~
+AI Token: GMK_KAMP
+Curve Type: 3 (oscillate)
+Feature Vector: [pitch, pitch+var, dur, 3, intensity, raga_ctx]
+
+Example notation: G~~ M P</div>`
+  },
+  jaru: {
+    title: '↗️ Jaru Gamakas (Slides)',
+    sub: 'Etra Jaru (up) and Irakka Jaru (down)',
+    body: `<div class="code-block">ETRA JARU (Upward slide):
+  Symbol:   ^
+  Token:    GMK_EJRU
+  Curve:    1 (linear_up)
+  Usage:    P^D   →  slide from P up to D
+
+IRAKKA JARU (Downward slide):
+  Symbol:   v
+  Token:    GMK_IJRU
+  Curve:    2 (linear_down)
+  Usage:    N v D →  slide from N down to D</div>`
+  },
+  nokku: {
+    title: '💥 Nokku & Sphurita',
+    sub: 'Stress accent and grace note gamakas',
+    body: `<div class="code-block">NOKKU (stress/snap):
+  Symbol:   *
+  Token:    GMK_NOKK
+  Curve:    7 (accent)
+  Usage:    *P  →  stressed Pa
+
+SPHURITA (grace from above):
+  Symbol:   (^)
+  Token:    GMK_SPHU
+  Curve:    5 (grace_up)
+  Usage:    (^)G  → touch G, land on lower note
+
+PRATYAGHATA (grace from below):
+  Symbol:   (v)
+  Token:    GMK_PRAT
+  Curve:    6 (grace_down)
+  Usage:    (v)N  → touch N, land on upper note</div>`
+  },
+  andola: {
+    title: '🌊 Andola & Remaining Gamakas',
+    sub: 'Wide oscillation and 11 more gamakas',
+    body: `<div class="popup-section"><h3>Andola</h3><ul>
+      <li>Wide, slow oscillation — svara not directly sounded</li>
+      <li>Pitch meanders between adjacent svaras</li>
+      <li>Symbol: ~^~ · Token: GMK_ANDO</li>
+    </ul></div>
+    <div class="popup-section"><h3>Other Gamakas</h3><ul>
+      <li>{mu} Mudrita — mouth-closed nasal ornament</li>
+      <li>{nm} Namita — fading/diminuendo ornament</li>
+      <li>{or} Orikkai — veena flick ornament</li>
+      <li>{ot} Othukkal — veena push ornament</li>
+      <li>{tr} Tribhinna — veena three-string technique</li>
+      <li>{mx} Misrita — mixed/blended gamakas</li>
+      <li>{ul} Ullasita — sparkling mordent ornament</li>
+      <li>= Ahata — plain note, no gamaka</li>
+    </ul></div>`
+  },
+  angas: {
+    title: '🥁 Anga System',
+    sub: 'The three building blocks of Carnatic rhythm',
+    body: `<div class="code-block">U  = Anudhrutam · 1 akshara
+     Hand: palm-down clap
+
+O  = Dhrutam · 2 aksharas
+     Hand: palm-down + palm-up clap
+
+l  = Laghu · variable aksharas by jaati
+     Hand: clap + finger count
+     l3=3  l4=4  l5=5  l7=7  l9=9
+
+Extended angas (108-tala system):
+  8  = Guru (8 aksharas)
+  )  = Plutam (12 aksharas)
+  +  = Kakapadam (16 aksharas)</div>`
+  },
+  talas7: {
+    title: '🔢 Suladi Sapta Talas',
+    sub: '7 base talas × 5 jaatis = 35 talas',
+    body: `<div class="code-block">Dhruva:  l O l l  = 14 aksharas
+Matya:   l O l    = 10 aksharas
+Rupaka:  O l      = 6  aksharas
+Jhampa:  l U O    = 7  aksharas
+Triputa: l O O    = 7  aksharas (Adi = Chatusra Triputa = 8)
+Ata:     l l O O  = 14 aksharas
+Eka:     l        = 4  aksharas
+
+Jaati variants: Tisra(3) Chatusra(4) Khanda(5) Misra(7) Sankeerna(9)
+7 × 5 = 35 talas · With gati: 175 talas · With tempo: 535 variations</div>`
+  },
+  chapu: {
+    title: '🎯 Chapu Talas',
+    sub: 'Beat-only talas outside the 35-tala system',
+    body: `<div class="code-block">Thisra Chapu:    3 beats (1+2)  · Tha-Ki-Ta
+Khanda Chapu:    5 beats (2+3)  · Tha-Ka-Tha-Ki-Ta
+Misra Chapu:     7 beats (3+4)  · Tha-Ki-Ta-Tha-Ka-Dhi-Mi
+Sankeerna Chapu: 9 beats (4+5)  · Tha-Ka-Dhi-Mi-Tha-Ka-Tha-Ki-Ta
+
+Note: Chapu talas show anga by beats only.
+Most popular in devotional / folk Carnatic music.
+Misra Chapu (7) is extremely common.</div>`
+  },
+  lexer: {
+    title: '🔤 Lexer',
+    sub: 'Tokenize the notation string into atomic units',
+    body: `<div class="code-block">Input:  "| S R~~ G M | P^D N S' |"
+
+Tokens:
+  BEAT_MARKER  |
+  SWARA        S  (MD_SA_0)
+  SWARA        R  (MD_RI_2)
+  GAMAKA       ~~ (GMK_KAMP)
+  SWARA        G  (MD_GA_2)
+  SWARA        M  (MD_MA_1)
+  BEAT_MARKER  |
+  SWARA        P  (MD_PA_0)
+  GAMAKA       ^  (GMK_EJRU)
+  SWARA        D  (MD_DA_2)
+  SWARA        N  (MD_NI_2)
+  SWARA        S' (HI_SA_0)
+  BEAT_MARKER  |</div>`
+  },
+  parser: {
+    title: '🌳 Parser — AST Builder',
+    sub: 'Builds a phrase tree from lexer tokens',
+    body: `<div class="code-block">AST Structure:
+Composition
+├── metadata: {raga, tala, speed}
+├── avartanam[0]
+│   ├── phrase[0]: {swara: S, octave: MD, dur: 1, gamaka: null}
+│   ├── phrase[1]: {swara: R, octave: MD, dur: 1, gamaka: KAMP}
+│   ├── phrase[2]: {swara: G, octave: MD, dur: 1, gamaka: null}
+│   └── phrase[3]: {swara: M, octave: MD, dur: 1, gamaka: null}
+└── avartanam[1]
+    ├── phrase[0]: {swara: P, gamaka: EJRU, target: D}
+    └── ...</div>`
+  },
+  validator: {
+    title: '✅ Raga Validator',
+    sub: 'Checks swaras against raga grammar',
+    body: `<div class="popup-section"><h3>Validation Rules</h3><ul>
+      <li>Check each swara is in raga's allowed set</li>
+      <li>Validate arohana/avarohana order</li>
+      <li>Flag forbidden swara combinations (vadi/samvadi)</li>
+      <li>Check gamaka appropriateness for raga</li>
+    </ul></div>
+    <div class="code-block">Mohanam allowed swaras: S R G P D S'
+  (no Ma, no Ni)
+  Arohana:  S R G P D S'
+  Avarohana: S' D P G R S</div>`
+  },
+  aitoken: {
+    title: '🤖 AI Tokenizer',
+    sub: 'Convert notation to ML-ready token sequences',
+    body: `<div class="code-block">Input notation: S R~~ G M P
+
+AI Token Sequence:
+  MD_SA_0  MD_RI_2  GMK_KAMP  MD_GA_2  MD_MA_1  MD_PA_0
+
+Full token format: {octave}_{swara}_{variant}
+  Octave:  MD (madhya) | HI (tara) | LO (mandra)
+  Swara:   SA RI GA MA PA DA NI
+  Variant: 0 (achala) | 1 (suddha) | 2 (chatusruti) | 3 (kakali)
+
+Tala tokens: BEAT | DHRUTAM | LAGHU_4 | REST
+Gamaka tokens: GMK_KAMP | GMK_EJRU | GMK_IJRU | ...
+
+Use as input to: Transformer · HMM · LSTM · Diffusion models</div>`
+  },
+  gamakavec: {
+    title: '📐 Gamaka Feature Vectors',
+    sub: '6-dimensional encoding for ML pitch modelling',
+    body: `<div class="code-block">Vector: [onset_pitch, target_pitch, duration, curve_type, intensity, raga_ctx]
+
+curve_type values:
+  0 = flat (ahata — no ornament)
+  1 = linear_up (etra jaru)
+  2 = linear_down (irakka jaru)
+  3 = oscillate (kampita / vibrato)
+  4 = wide_oscillate (andola)
+  5 = grace_up (sphurita)
+  6 = grace_down (pratyaghata)
+  7 = accent (nokku)
+  8 = fade (namita)
+  9 = complex (orikkai/othukkal/misrita)
+
+Example:
+  Kampita on Pa: [67, 67, 0.5, 3, 0.8, 1]
+  Etra Jaru P→D: [67, 69, 0.25, 1, 0.6, 1]</div>`
+  },
+  midi: {
+    title: '🎛 Frequency & MIDI Map (Just Intonation)',
+    sub: 'Adhara Shadjam relative — not equal temperament',
+    body: `<div class="popup-section"><h3>⚠️ Just Intonation vs MIDI</h3><ul>
+      <li>MIDI uses equal temperament (12-TET) — all semitones equal</li>
+      <li>Carnatic music uses JUST INTONATION — pure ratio intervals</li>
+      <li>To render accurately: use MIDI pitch bend for microtonal offsets</li>
+    </ul></div>
+    <div class="code-block">RagaNotate MIDI Mapping (Sa = MIDI 60, C4 = 261.63 Hz)
+
+Sym   Ratio    Exact Hz    12-TET Hz   Cent offset  MIDI
+─────────────────────────────────────────────────────────
+S     1/1      261.63      261.63       0.0c        60
+r     256/243  275.62      277.18      -10.0c       61 + bend
+R     9/8      294.33      293.66      +3.9c        62 + bend
+g     32/27    309.87      311.13      -5.9c        63 + bend
+G     6/5      313.96      311.13      +15.6c       63 + bend
+G+    5/4      327.04      329.63      -13.7c       64 + bend
+m     4/3      348.83      349.23      -2.0c        65 + bend
+M     45/32    367.92      369.99      -9.8c        66 + bend
+P     3/2      392.44      392.00      +2.0c        67 + bend
+d     128/81   413.43      415.30      -7.8c        68 + bend
+D     5/3      436.05      440.00      -15.6c       69 + bend
+n     16/9     465.11      466.16      -3.9c        70 + bend
+N     9/5      470.93      466.16      +17.6c       70 + bend
+N+    15/8     490.55      493.88      -11.7c       71 + bend
+S'    2/1      523.25      523.25       0.0c        72
+
+Gamakas → MIDI pitch bend:
+  Kampita:  LFO ±50–100 cents @4–6 Hz
+  Etra Jaru: linear bend +100 to +200 cents
+  Irakka Jaru: linear bend -100 to -200 cents
+  Andola:   LFO ±150–200 cents @2–3 Hz (wide)</div>`
+  },
+  svg: {
+    title: '🖼 SVG Renderer',
+    sub: 'Render notation as web-ready SVG (based on carnot)',
+    body: `<div class="popup-section"><h3>Rendering Layers</h3><ul>
+      <li>Swara boxes with text labels</li>
+      <li>Gamaka symbols above/below swaras</li>
+      <li>Tala line (U/O/l markers) below</li>
+      <li>Lyric text aligned to swaras</li>
+      <li>Multi-octave staff with dot/prime markers</li>
+    </ul></div>
+    <div class="popup-section"><h3>Technology</h3><ul>
+      <li>TypeScript → SVG string output</li>
+      <li>Inspired by srikumarks/carnot architecture</li>
+      <li>Embeds directly in HTML with &lt;pre class="carnot_section"&gt;</li>
+    </ul></div>`
+  },
+  webui: {
+    title: '💻 Web UI Editor',
+    sub: 'Live notation editor with real-time preview',
+    body: `<div class="popup-section"><h3>Features</h3><ul>
+      <li>CodeMirror-based notation editor with syntax highlighting</li>
+      <li>Real-time SVG preview as you type</li>
+      <li>Gamaka pitch contour graph per phrase</li>
+      <li>Tala beat clock with visual anga markers</li>
+      <li>Raga selector → auto-validate swaras</li>
+      <li>Export to PDF, MIDI, MusicXML, JSON</li>
+    </ul></div>`
+  },
+  export: {
+    title: '📦 Export Formats',
+    sub: 'Multiple output formats from one notation source',
+    body: `<div class="code-block">MIDI (.mid)       — Playback with gamaka pitch bends
+JSON (.json)      — Machine-readable AST
+PDF (.pdf)        — Print-ready notation sheet
+MusicXML (.xml)   — Import to Sibelius/Finale
+LilyPond (.ly)    — Typeset professional scores
+Plain text (.txt) — Human-readable ASCII notation
+CSV (.csv)        — AI training dataset format</div>`
+  },
+  dataset: {
+    title: '📊 AI Training Dataset',
+    sub: 'Annotated Carnatic notation for ML research',
+    body: `<div class="popup-section"><h3>Dataset Contents</h3><ul>
+      <li>50+ complete compositions annotated in notation format</li>
+      <li>Per-note gamaka labels (15 classes)</li>
+      <li>Raga labels for each composition</li>
+      <li>Tala beat alignments</li>
+      <li>Phonetic lyric-to-swara alignments</li>
+    </ul></div>
+    <div class="popup-section"><h3>Target Uses</h3><ul>
+      <li>Gamaka classification (Random Forest, HMM, Transformer)</li>
+      <li>Raga recognition from swara sequences</li>
+      <li>Automatic notation generation (LLM)</li>
+      <li>TTS synthesis with gamaka rendering</li>
+    </ul></div>
+    <div class="code-block">Target: github.com/jags111/RagaNotate/dataset
+Also: HuggingFace datasets → jags111/RagaNotate</div>`
+  }
+};
+
+function openPopup(key) {
+  const d = popupData[key];
+  if (!d) return;
+  document.getElementById('popupTitle').textContent = d.title;
+  document.getElementById('popupSub').textContent = d.sub;
+  document.getElementById('popupBody').innerHTML = d.body;
+  document.getElementById('popupOverlay').classList.add('open');
+}
+
+function closePopup(e) {
+  if (!e || e.target === document.getElementById('popupOverlay') || e.target.classList.contains('popup-close')) {
+    document.getElementById('popupOverlay').classList.remove('open');
+  }
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closePopup({target: document.getElementById('popupOverlay')});
+});
+</script>
+</body>
+</html>
