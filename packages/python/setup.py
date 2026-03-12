@@ -10,7 +10,7 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     name="raganotate",
-    version="0.1.1",
+    version="0.1.4",
     author="Jags",
     author_email="info@revsmartasia.com",
     description="Full-Stack Carnatic Music Notation Engine — Lyrics to Playable Audio",

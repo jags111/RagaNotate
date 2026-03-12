@@ -1,22 +1,79 @@
-# RagaNotate — Python Requirements
-# github.com/jags111/RagaNotate
+# RagaNotate — Python Package Requirements
+# github.com/jags111/RagaNotate  |  v0.1.4
+# ─────────────────────────────────────────────────────────────────────────
+# Install everything:    pip install -r requirements.txt
+# Minimal (core only):   pip install raganotate
+# With MIDI:             pip install raganotate[midi]
+# With audio:            pip install raganotate[audio]
+# With AI/ML:            pip install raganotate[ai]
+# Full stack:            pip install raganotate[all]
+# ─────────────────────────────────────────────────────────────────────────
 
-# Core (always required)
-numpy>=1.24
-scipy>=1.10
+# ── CORE (pure stdlib — zero install needed) ──────────────────────────────
+# fractions, dataclasses, typing, re, json, pathlib
 
-# MIDI export
-midiutil>=1.2
+# ── MIDI export ───────────────────────────────────────────────────────────
+MIDIUtil>=1.2.1
+# pip install MIDIUtil  (capital M and U — NOT "midiutil" lowercase)
+# Used in:  raganotate/midi_generator.py
+# Source:   https://github.com/MarkCWirt/MIDIUtil
+# Test:     python -m raganotate.midi_generator
 
-# Audio file I/O
-soundfile>=0.12
+# ── Audio synthesis ───────────────────────────────────────────────────────
+numpy>=1.24.0
+# Core numerical arrays — waveform buffers, feature matrices
+scipy>=1.10.0
+# Signal processing: filters, wavfile I/O (scipy.io.wavfile)
+soundfile>=0.12.1
+# High-quality WAV/FLAC/OGG read-write (libsndfile wrapper)
 
-# AI / ML (optional — needed for ai_encoder, dataset modules)
-# transformers>=4.30
-# datasets>=2.14
-# torch>=2.0
+# ── SVG rendering (server-side) ───────────────────────────────────────────
+svgwrite>=1.4.3
+# Python SVG generation — server-side complement to renderer.ts
 
-# Dev / testing
-pytest>=7.0
-ruff>=0.1
-mypy>=1.0
+# ── AI / ML encoding + dataset ────────────────────────────────────────────
+datasets>=2.14.0
+# HuggingFace datasets — used in ai_encoder.ast_to_dataset_record()
+tokenizers>=0.15.0
+# HuggingFace tokenizers — vocab training from build_vocabulary()
+transformers>=4.35.0
+# Optional: model fine-tuning on notation token sequences
+# Can omit if only using ai_encoder for token/feature generation
+
+# ── Development & testing ─────────────────────────────────────────────────
+pytest>=7.4.0
+pytest-cov>=4.1.0
+black>=23.0.0
+ruff>=0.1.0
+mypy>=1.5.0
+
+# ── Jupyter notebooks ─────────────────────────────────────────────────────
+jupyter>=1.0.0
+ipython>=8.0.0
+
+# ─────────────────────────────────────────────────────────────────────────
+# KNOWN ISSUES / INSTALL NOTES
+#
+# 1. MIDIUtil package name on PyPI is "MIDIUtil" (capital M, U):
+#       pip install MIDIUtil
+#    NOT "midiutil" (lowercase) — that is a different/older package.
+#
+# 2. Minimal install (notation + parsing, no MIDI/audio/AI):
+#       pip install raganotate
+#    Core has zero third-party dependencies — pure Python stdlib.
+#
+# 3. For real-time audio playback (in addition to file export):
+#       pip install pyaudio        # cross-platform real-time playback
+#       pip install simpleaudio    # simpler alternative (Windows/Mac/Linux)
+#
+# 4. transformers + torch are large (~2 GB). Skip if not training models:
+#       pip install raganotate[ai]   # installs datasets + tokenizers only
+#
+# 5. On Windows, soundfile may need:
+#       pip install soundfile --pre
+#
+# 6. Full dev setup from repo root:
+#       cd packages/python
+#       pip install -e ".[all]"
+#       pytest -v
+# ─────────────────────────────────────────────────────────────────────────

@@ -70,19 +70,19 @@ class Swarasthana:
 
 SWARASTHANAS: dict[str, Swarasthana] = {
     "S": Swarasthana(1,  "S",   0, "Shadjam",               "Sa",  "SA_0",     Fraction(1, 1),     "achala"),
-    "r": Swarasthana(2,  "r",   1, "Suddha Rishabham",       "Ra",  "RI_1",     Fraction(256, 243), "chala"),
+    "r": Swarasthana(2,  "r",   1, "Suddha Rishabham",       "Ra",  "RI_1",     Fraction(16, 15), "chala"),
     "R": Swarasthana(3,  "R",   2, "Chatusruti Rishabham",   "Ri",  "RI_2",     Fraction(9, 8),     "chala"),
-    "g": Swarasthana(4,  "g",   1, "Suddha Gandharam",       "Ga",  "GA_1",     Fraction(32, 27),   "chala"),
+    "g": Swarasthana(4,  "g",   1, "Shatshruti Rishabham",   "Rhi", "GA_1",     Fraction(6, 5),   "chala"),
     "G": Swarasthana(5,  "G",   2, "Sadharana Gandharam",    "Gi",  "GA_2",     Fraction(6, 5),     "chala"),
-    "G+":Swarasthana(6,  "G+",  3, "Antara Gandharam",       "Gu",  "GA_3",     Fraction(5, 4),     "chala"),
+    "G+":Swarasthana(6,  "G+",  3, "Antara Gandharam",       "Gu",  "GA_3",     Fraction(31, 24),     "chala"),
     "m": Swarasthana(7,  "m",   1, "Suddha Madhyamam",       "Ma",  "MA_1",     Fraction(4, 3),     "chala"),
     "M": Swarasthana(8,  "M",   2, "Prati Madhyamam",        "Mi",  "MA_2",     Fraction(45, 32),   "chala"),
     "P": Swarasthana(9,  "P",   0, "Panchamam",              "Pa",  "PA_0",     Fraction(3, 2),     "achala"),
-    "d": Swarasthana(10, "d",   1, "Suddha Dhaivatam",       "Da",  "DA_1",     Fraction(128, 81),  "chala"),
-    "D": Swarasthana(11, "D",   2, "Chatusruti Dhaivatam",   "Di",  "DA_2",     Fraction(5, 3),     "chala"),
-    "n": Swarasthana(12, "n",   1, "Suddha Nishadam",        "Na",  "NI_1",     Fraction(16, 9),    "chala"),
+    "d": Swarasthana(10, "d",   1, "Suddha Dhaivatam",       "Da",  "DA_1",     Fraction(8, 5),  "chala"),
+    "D": Swarasthana(11, "D",   2, "Chatushruti Dhaivatam",  "Dha", "DA_2",     Fraction(17, 10),     "chala"),
+    "n": Swarasthana(12, "n",   1, "Shatshruti Dhaivatam",   "Ni",  "NI_1",     Fraction(9, 5),    "chala"),
     "N": Swarasthana(13, "N",   2, "Kaisika Nishadam",       "Ni",  "NI_2",     Fraction(9, 5),     "chala"),
-    "N+":Swarasthana(14, "N+",  3, "Kakali Nishadam",        "Nu",  "NI_3",     Fraction(15, 8),    "chala"),
+    "N+":Swarasthana(14, "N+",  3, "Kakali Nishadam",        "Nu",  "NI_3",     Fraction(19, 10),    "chala"),
 }
 
 # Alias map: numeric variant suffixes → canonical symbol

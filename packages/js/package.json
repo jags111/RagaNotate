@@ -1,6 +1,6 @@
 {
   "name": "@jags111/raganotate",
-  "version": "0.1.1",
+  "version": "0.1.4",
   "description": "Full-Stack Carnatic Music Notation Engine — TypeScript/JS Library",
   "main": "dist/index.js",
   "module": "dist/index.esm.js",

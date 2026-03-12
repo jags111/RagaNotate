@@ -9,6 +9,47 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+---
+
+## [0.1.4] — 2026-03-12
+
+### Added — Web UI Editor + Tala Clock + Shruti Drone
+
+#### `web/raganotate_editor.html` — Self-contained Live Editor
+- **CodeMirror 5** editor with custom `raganotate` syntax mode
+  - Colour tokens: achala swaras (amber), chala swaras (blue), gamaka (teal), bars (accent), rest (muted), meta (purple)
+  - Toolbar quick-insert buttons: `|` `||` `-` `,` `~` `/` `\` `^` `w` `;` `:` `'` `.`
+- **Real-time SVG preview** — live re-renders on every keystroke (300ms debounce)
+  - Swara boxes with octave dots (tara above, mandra below)
+  - Gamaka indicators (top-right corner)
+  - Duration width-stretching (double for `;`, half for `:`)
+  - Bar lines, section-end double bars, half-beat markers
+  - Auto row-wrap at viewport width
+  - Dark / light theme toggle
+- **Tala Beat Clock** — visual anga display for all 8 talas
+  - Anga groups coloured: Laghu (blue), Drutam (green), Anudruta (purple)
+  - Current beat highlighted with pulse animation
+  - Beat counter display (1/8, 3/8 etc)
+- **Audio Engine** (Web Audio API — no server needed)
+  - 🥁 **Mridangam**: Thom (bass sine + pitch-drop), Ta/Dhi (noise bandpass), Ki (crisp high click)
+    - Sam = Thom + strong Ta; Laghu start = strong Ta; Drutam wave = Ki
+  - 🎹 **Harmonium**: Sawtooth + harmonics through low-pass filter, tuned to Sa intervals
+  - 🔔 **Bell / Gong**: Metallic partials at real bell frequency ratios (2.756×, 5.404×, 8.933×)
+  - ◻ **Silent** mode
+- **Shruti Drone** — Sa, Pa, Sa' toggle buttons
+  - 4 detuned sawtooth oscillators (chorus effect) + fundamental sine
+  - Low-pass filtered for warmth; 1.5s fade-in
+  - Animated waveform visualiser bars
+- Controls: Raga selector (8 ragas), Sa Hz (C, C#, D … 11 options), Tala selector, BPM slider 40–240
+- SVG export button (downloads `raganotate_notation.svg`)
+
+#### `requirements.txt` — Fully documented dependency list
+- Added `MIDIUtil>=1.2.1` with PyPI capitalisation note (NOT `midiutil`)
+- Added `soundfile>=0.12.1`, `svgwrite>=1.4.3`
+- Added `datasets>=2.14.0`, `tokenizers>=0.15.0`, `transformers>=4.35.0` (AI extras)
+- Added install notes for Windows, real-time audio (`pyaudio`, `simpleaudio`)
+- Documented install extras: `[midi]`, `[audio]`, `[ai]`, `[all]`
+
 ### Planned
 - Web UI live editor (HTML + CodeMirror + real-time SVG preview)
 - Tala beat clock visual component
@@ -205,5 +246,9 @@ All 6 modules tested and passing:
 
 ---
 
-[Unreleased]: https://github.com/jags111/RagaNotate/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/jags111/RagaNotate/compare/v0.1.4...HEAD
+[0.1.4]: https://github.com/jags111/RagaNotate/compare/v0.1.3...v0.1.4
+[0.1.3]: https://github.com/jags111/RagaNotate/compare/v0.1.2...v0.1.3
+[0.1.2]: https://github.com/jags111/RagaNotate/compare/v0.1.1...v0.1.2
+[0.1.1]: https://github.com/jags111/RagaNotate/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/jags111/RagaNotate/releases/tag/v0.1.0

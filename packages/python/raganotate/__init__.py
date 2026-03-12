@@ -20,7 +20,7 @@ Quick Start
     # Parse notation
     ast = parse_notation("| S R~ G M | P/D N S' |", tala="Adi")
 
-Version: 0.1.1
+Version: 0.1.4
 Author:  Jags (jags111) · github.com/jags111
 """
 
@@ -54,7 +54,7 @@ from .lyrics_mapper import (
     align_lyrics_to_notation,
 )
 
-__version__ = "0.1.1"
+__version__ = "0.1.4"
 __author__ = "Jags (jags111)"
 __repo__ = "https://github.com/jags111/RagaNotate"
 
