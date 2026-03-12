@@ -1,0 +1,28 @@
+# RagaNotate — Git line-ending normalisation
+# Ensures LF on all text files regardless of OS (prevents Windows CRLF noise)
+
+* text=auto
+
+# Source code — always LF
+*.py   text eol=lf
+*.ts   text eol=lf
+*.js   text eol=lf
+*.json text eol=lf
+*.html text eol=lf
+*.css  text eol=lf
+*.md   text eol=lf
+*.txt  text eol=lf
+*.sh   text eol=lf
+*.yaml text eol=lf
+*.toml text eol=lf
+
+# Binary files — no line-ending conversion
+*.xlsx  binary
+*.mid   binary
+*.wav   binary
+*.mp3   binary
+*.png   binary
+*.jpg   binary
+*.svg   text eol=lf
+*.bundle binary
+*.pyc   binary

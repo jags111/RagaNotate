@@ -50,14 +50,74 @@ and uses [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Added install notes for Windows, real-time audio (`pyaudio`, `simpleaudio`)
 - Documented install extras: `[midi]`, `[audio]`, `[ai]`, `[all]`
 
+#### `web/raganotate_editor.html` v2 additions (2026-03-12)
+- **Raga-aware SVG highlighting** — swaras outside the selected raga's scale shown with red border + ⚠ marker
+- **Raga info bar** — shows valid swara pills (amber = achala, blue = chala) and out-of-raga count
+- **▶ Play Notation** button — synthesizes notation swaras via Web Audio API (bansuri-like sine + harmonics)
+  - Gamaka pitch bends: kampita (vibrato), jaru_up (slide from below), jaru_down (slide from above)
+  - Accurate JI tuning, octave-aware, BPM-synced note durations
+- **Stop notation** button — stops playback mid-sequence
+
+#### `packages/js/src/tala.ts` — Full TalaEngine (TypeScript)
+- Added `TalaEngine` class with `start()` / `stop()` / `reset()` / `setBpm()` methods
+- Added `runSync(n)` — synchronous multi-avartana beat list for scheduling/testing
+- Added `oneBeatCycle(avartana)` — full beat array for one avartana
+- Added `validateBar(duration, tala)` — checks bar duration against tala total aksharas
+- Added `printTalaPattern(tala, bpm)` — console debug output
+- `BeatEvent` now includes `isSam`, `avartana`, `label` fields
+- `ChapuTala` interface updated with `grouping: number[]` field
+- Node.js self-test guard at bottom
+
+#### `packages/python/raganotate/midi_generator.py`
+- Fixed docstring: `midiutil` → `MIDIUtil` (correct PyPI capitalisation)
+- Improved ImportError message with clear install instruction
+
+#### `docs/midi_test.md` — New MIDI test guide
+- Step-by-step: install MIDIUtil, run demo, Python API examples
+- MIDI program number table, gamaka pitch bend explanation
+- JI tuning table, troubleshooting section
+
+#### `dataset/sawarsthanam.xlsx`
+- Moved into repo under `dataset/` folder (was at workspace root)
+
+#### `.gitattributes`
+- Recreated (had been lost in session reset)
+- Added `*.mid binary` and `*.svg text eol=lf`
+
 ### Planned
-- Web UI live editor (HTML + CodeMirror + real-time SVG preview)
-- Tala beat clock visual component
-- Raga grammar live validator
-- MIDI export UI (browser download)
-- HuggingFace dataset publication
+- Raga grammar live validator (CodeMirror lint-level)
+- MIDI export UI (browser download button)
+- HuggingFace dataset publication (10+ annotated compositions)
 - PyPI package: `pip install raganotate`
 - npm package: `@jags111/raganotate`
+
+---
+
+## [0.1.3] — 2026-03-11
+
+### Changed — Swarasthana Ratio Corrections (Option B — Ratios as Ground Truth)
+
+#### `packages/python/raganotate/swara.py`
+- Reconciled all 16 swarasthana ratios against `sawarsthanam.xlsx` reference table
+- **7 ratios corrected** (ratios from Excel treated as ground truth; frequencies recalculated as ratio × 240):
+
+| Symbol | Swarasthana | Old Ratio | New Ratio | Old Hz | New Hz |
+|--------|-------------|-----------|-----------|--------|--------|
+| `r` (R1) | Suddha Rishabham | 256/243 | **16/15** | 252.83 | **256.00** |
+| `g` (R3/G2) | Shatshruti Ri / Suddha Ga | 32/27 | **6/5** | 284.44 | **288.00** |
+| `G+` (G3) | Antara Gandharam | 5/4 | **31/24** | 300.00 | **310.00** |
+| `d` (D1) | Suddha Dhaivatam | 128/81 | **8/5** | 379.26 | **384.00** |
+| `D` (D2) | Chatushruti Dhaivatam | 5/3 | **17/10** | 400.00 | **408.00** |
+| `n` (N1) | Shatshruti Dhaivatam | 16/9 | **9/5** | 426.67 | **432.00** |
+| `N+` (N3) | Kakali Nishadam | 15/8 | **19/10** | 450.00 | **456.00** |
+
+- Added `ENHARMONIC_PAIRS` list documenting shared-pitch pairs by raga context
+- `VARIANT_ALIAS` updated to include identity aliases `S`, `P` and octave forms `S'`, `.s`
+
+#### `sawarsthanam.xlsx` (workspace reference)
+- Rebuilt with corrected frequencies (ratio × 240 Hz)
+- Added columns: Sa=256 Hz, Sa=261.63 Hz (concert pitch)
+- Colour coding: amber = achala, blue = chala, grey = alias rows
 
 ---
 
@@ -235,14 +295,15 @@ All 6 modules tested and passing:
 
 | Version | Date | Phase | Status |
 |---------|------|-------|--------|
+| 0.1.4 | 2026-03-12 | Web UI Editor + Tala Clock + Shruti Drone + requirements.txt | ✅ Complete |
+| 0.1.3 | 2026-03-11 | Swarasthana Ratio Corrections (Option B) | ✅ Complete |
 | 0.1.2 | 2026-03-10 | TS parser.ts + renderer.ts + ai_encoder.py + Tests | ✅ Complete |
 | 0.1.1 | 2026-03-10 | Spec Refinement + Lyrics-to-Notation Architecture | ✅ Complete |
 | 0.1.0 | 2026-03-10 | Phase 1 — Core Specification | ✅ Complete |
-| 0.2.0 | TBD | Phase 2 — TypeScript Library | 🔲 Planned |
-| 0.3.0 | TBD | Phase 3 — Python Package | 🔲 Planned |
-| 0.4.0 | TBD | Phase 4 — Web UI | 🔲 Planned |
-| 0.5.0 | TBD | Phase 5 — GitHub CI/CD + Examples | 🔲 Planned |
-| 1.0.0 | TBD | Phase 6 — Dataset + AI Release | 🔲 Planned |
+| 0.2.0 | TBD | Phase 2 — tala.ts beat generator + MIDI export test | 🔲 Planned |
+| 0.3.0 | TBD | Phase 3 — HuggingFace dataset (10+ compositions) | 🔲 Planned |
+| 0.4.0 | TBD | Phase 4 — PyPI + npm publish | 🔲 Planned |
+| 1.0.0 | TBD | Phase 5 — Full AI Release | 🔲 Planned |
 
 ---
 

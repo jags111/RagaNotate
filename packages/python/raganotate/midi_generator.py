@@ -6,7 +6,8 @@ Converts a NotationAST into a MIDI file, with:
   - Gamaka pitch contours encoded as pitch bend sequences
   - Tala tempo from BPM
 
-Requires: midiutil (pip install midiutil)
+Requires: MIDIUtil (pip install MIDIUtil)
+  NOTE: PyPI package name is "MIDIUtil" (capital M and U) — NOT "midiutil" lowercase.
 
 Ref: ARCHITECTURE.md · github.com/jags111/RagaNotate
 """
@@ -110,7 +111,8 @@ class MidiGenerator:
             from midiutil import MIDIFile
         except ImportError:
             raise ImportError(
-                "midiutil is required: pip install midiutil"
+                "MIDIUtil is required: pip install MIDIUtil\n"
+                "  (capital M and U — NOT 'midiutil' lowercase)"
             )
 
         midi = MIDIFile(numTracks=1)
@@ -241,5 +243,5 @@ if __name__ == "__main__":
         path = ast_to_midi(ast, "test_output.mid", sa_hz=240.0, bpm=72.0)
         print(f"MIDI written to: {path}")
     except ImportError as e:
-        print(f"Install midiutil first: pip install midiutil")
+        print(f"Install MIDIUtil first: pip install MIDIUtil")
         print(f"  {e}")

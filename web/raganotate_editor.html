@@ -80,7 +80,23 @@ input[type=range] { padding:0; cursor:pointer; accent-color:var(--accent); }
 .cm-rn-gamaka{ color:#4ec9b0; }
 .cm-rn-rest  { color:var(--muted); }
 .cm-rn-meta  { color:#c586c0; font-style:italic; }
-.cm-rn-dur   { color:#b5cea8; }
+.cm-rn-dur     { color:#b5cea8; }
+.cm-rn-invalid { color:#f85149; text-decoration:underline wavy #f85149; }
+
+/* ─── RAGA INFO BAR ───────────────────────────────────────────────────────── */
+#raga-info-bar {
+  background:var(--bg3); border-bottom:1px solid var(--border);
+  padding:4px 14px; display:flex; align-items:center; gap:8px;
+  font-size:11px; color:var(--muted); flex-shrink:0;
+}
+#raga-swara-pills { display:flex; gap:4px; flex-wrap:wrap; }
+.raga-pill {
+  padding:2px 7px; border-radius:10px; font-size:10px; font-weight:600;
+  background:var(--bg2); border:1px solid var(--border); font-family:monospace;
+}
+.raga-pill.achala { border-color:var(--accent); color:var(--accent); }
+.raga-pill.chala  { border-color:var(--accent2); color:var(--accent2); }
+#notate-warn { color:var(--red); font-size:11px; }
 
 /* ─── PREVIEW PANE ───────────────────────────────────────────────────────── */
 #preview-pane {
@@ -253,7 +269,14 @@ input[type=range] { padding:0; cursor:pointer; accent-color:var(--accent); }
       <span id="parse-status" class="status-ok">✓ Ready</span>
       <span id="stats"></span>
       <div style="flex:1"></div>
-      <span style="font-size:11px;color:var(--muted)">Live SVG Preview</span>
+      <button class="btn" id="play-notation-btn" title="Play notation via Web Audio">▶ Play Notation</button>
+      <button class="btn" id="stop-notation-btn" title="Stop notation playback" style="display:none">■ Stop</button>
+      <span style="font-size:11px;color:var(--muted);margin-left:8px">Live SVG Preview</span>
+    </div>
+    <div id="raga-info-bar">
+      <span style="color:var(--muted);white-space:nowrap">Raga scale:</span>
+      <div id="raga-swara-pills"></div>
+      <span id="notate-warn"></span>
     </div>
     <div id="preview-scroll">
       <svg id="svg-output" xmlns="http://www.w3.org/2000/svg"></svg>
@@ -443,6 +466,56 @@ function parse(text) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
+// 3b. RAGA VALIDATION HELPERS
+// ═══════════════════════════════════════════════════════════════════════════
+
+/** Return the set of canonical swara symbols valid in the currently selected raga. */
+function getActiveRagaSwaras() {
+  const ragaName = document.getElementById('raga-sel')
+    ? document.getElementById('raga-sel').value
+    : 'Hamsadhvani';
+  const scaleStr = RAGA_DATA[ragaName] || '';
+  // Always include Sa and Pa (achala)
+  const set = new Set(['S', 'P']);
+  scaleStr.split(/\s+/).forEach(s => { if (s) set.add(resolveAlias(s)); });
+  return set;
+}
+
+/** Return a Set of swara node indices that are NOT in the active raga. */
+function getRagaViolations(nodes) {
+  const valid = getActiveRagaSwaras();
+  const violations = new Set();
+  nodes.forEach((n, i) => {
+    if (n.type === 'swara' && !valid.has(n.symbol)) violations.add(i);
+  });
+  return violations;
+}
+
+/** Update the raga info pill bar and warn counter. */
+function updateRagaInfoBar(violations = new Set()) {
+  const ragaName = document.getElementById('raga-sel').value;
+  const scaleStr = (RAGA_DATA[ragaName] || '').split(/\s+/).filter(Boolean);
+  const container = document.getElementById('raga-swara-pills');
+  if (!container) return;
+  container.innerHTML = '';
+  scaleStr.forEach(sym => {
+    const canonical = resolveAlias(sym);
+    const sw = SWARA_DATA[canonical];
+    const pill = document.createElement('span');
+    pill.className = 'raga-pill ' + (sw && sw.achala ? 'achala' : 'chala');
+    pill.textContent = sym;
+    pill.title = sw ? sw.ph : sym;
+    container.appendChild(pill);
+  });
+  const warnEl = document.getElementById('notate-warn');
+  if (warnEl) {
+    warnEl.textContent = violations.size > 0
+      ? `⚠ ${violations.size} out-of-raga note${violations.size > 1 ? 's' : ''}`
+      : '';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
 // 4. SVG RENDERER
 // ═══════════════════════════════════════════════════════════════════════════
 const GAMAKA_SYM = {
@@ -451,7 +524,7 @@ const GAMAKA_SYM = {
 };
 const OCT_COLORS = { mandra:'#58a6ff', madhya:'inherit', tara:'#ffa657' };
 
-function renderSVG(nodes, opts={}) {
+function renderSVG(nodes, opts={}, violations=new Set()) {
   const isDark  = document.documentElement.dataset.theme !== 'light';
   const COLORS  = {
     bg:       isDark ? '#0d1117' : '#ffffff',
@@ -524,16 +597,25 @@ function renderSVG(nodes, opts={}) {
         const sw = SWARA_DATA[n.symbol];
         if (!sw) { x += CW; continue; }
 
-        const grpCol = GRP_COLOR[sw.grp] || COLORS.text;
+        const nodeIdx = nodes.indexOf(n);
+        const isViolation = violations.has(nodeIdx);
+        const grpCol = isViolation ? '#f85149' : (GRP_COLOR[sw.grp] || COLORS.text);
         const cellW  = CW * Math.max(0.5, n.dur) - 2;
         const isAch  = sw.achala;
 
-        // Cell background
-        const bgCol = isAch
-          ? (isDark ? '#1a1600' : '#fff8e1')
-          : (isDark ? '#0c1a0c' : '#f0f9f0');
+        // Cell background — red-tinted if out of raga
+        const bgCol = isViolation
+          ? (isDark ? '#2a0a0a' : '#fff0f0')
+          : isAch
+            ? (isDark ? '#1a1600' : '#fff8e1')
+            : (isDark ? '#0c1a0c' : '#f0f9f0');
+        const strokeW = isViolation ? 2 : (isAch ? 2 : 1);
         svg += `<rect x="${x}" y="${y}" width="${cellW}" height="${CH}"
-          rx="6" fill="${bgCol}" stroke="${grpCol}44" stroke-width="${isAch?2:1}"/>`;
+          rx="6" fill="${bgCol}" stroke="${grpCol}${isViolation?'':'44'}" stroke-width="${strokeW}"/>`;
+        // Violation marker — small warning triangle
+        if (isViolation) {
+          svg += `<text x="${x+6}" y="${y+13}" font-size="9" fill="#f85149">⚠</text>`;
+        }
 
         // Octave dots
         if (n.octave === 'tara') {
@@ -807,6 +889,114 @@ class AudioEngine {
       b.style.height = [8,14,20,14,8][i] + 'px'; b.style.opacity = '0.3';
     });
   }
+
+  // ── Notation Playback ──────────────────────────────────────────────────
+  /**
+   * Play an array of parsed notation nodes as audio using a smooth
+   * sine-based synthesis (bansuri-like) tuned to JI frequencies.
+   * @param {Array}  nodes   - from parse()
+   * @param {number} saHz    - Adhara Shadjam frequency
+   * @param {number} bpm     - beats per minute (aksharas per minute)
+   * @returns {number}       - total duration in seconds
+   */
+  playSwaraSequence(nodes, saHz, bpm) {
+    this._ensureCtx();
+    const ctx = this.ctx;
+    const aksharaDur = 60.0 / bpm;
+
+    // Stop any previous notation playback
+    this.stopSwaraSequence();
+
+    this._notateNodes = [];
+    let t = ctx.currentTime + 0.05;
+
+    for (const n of nodes) {
+      if (n.type === 'rest') {
+        t += (n.dur || 1) * aksharaDur;
+        continue;
+      }
+      if (n.type !== 'swara') continue;
+
+      const sw = SWARA_DATA[n.symbol];
+      if (!sw) { t += (n.dur || 1) * aksharaDur; continue; }
+
+      const octMul = n.octave === 'tara' ? 2 : n.octave === 'mandra' ? 0.5 : 1;
+      const freq   = saHz * sw.ratio * octMul;
+      const dur    = (n.dur || 1) * aksharaDur;
+      const fadeDur = Math.min(0.08, dur * 0.15);
+
+      const osc = ctx.createOscillator();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, t);
+
+      // Kampita gamaka: oscillate pitch
+      if (n.gamaka === 'kampita') {
+        const vibDepth = freq * 0.015;
+        const steps = Math.floor(dur / 0.04);
+        for (let i = 0; i < steps; i++) {
+          const ft = t + i * 0.04;
+          const deviation = vibDepth * Math.sin(i * Math.PI * 0.6);
+          osc.frequency.setValueAtTime(freq + deviation, ft);
+        }
+      }
+      // Jaru up: slide from 95% to freq
+      if (n.gamaka === 'jaru_up') {
+        osc.frequency.setValueAtTime(freq * 0.94, t);
+        osc.frequency.linearRampToValueAtTime(freq, t + dur * 0.4);
+      }
+      // Jaru down: slide from 106% to freq
+      if (n.gamaka === 'jaru_down') {
+        osc.frequency.setValueAtTime(freq * 1.06, t);
+        osc.frequency.linearRampToValueAtTime(freq, t + dur * 0.4);
+      }
+
+      // Add harmonics (like a bansuri flute)
+      const masterG = ctx.createGain();
+      masterG.gain.setValueAtTime(0, t);
+      masterG.gain.linearRampToValueAtTime(this.volume * 0.45, t + fadeDur);
+      masterG.gain.setValueAtTime(this.volume * 0.45, t + dur - fadeDur * 2);
+      masterG.gain.linearRampToValueAtTime(0, t + dur - 0.01);
+
+      const harmG1 = ctx.createGain(); harmG1.gain.value = 0.3;
+      const osc2 = ctx.createOscillator(); osc2.type = 'sine'; osc2.frequency.value = freq * 2;
+      const harmG2 = ctx.createGain(); harmG2.gain.value = 0.12;
+      const osc3 = ctx.createOscillator(); osc3.type = 'sine'; osc3.frequency.value = freq * 3;
+
+      osc.connect(masterG); masterG.connect(this.masterGain);
+      osc2.connect(harmG1); harmG1.connect(masterG);
+      osc3.connect(harmG2); harmG2.connect(masterG);
+
+      [osc, osc2, osc3].forEach(o => { o.start(t); o.stop(t + dur + 0.02); });
+      this._notateNodes.push(osc, osc2, osc3, masterG, harmG1, harmG2);
+
+      t += dur;
+    }
+
+    this._notateEndTime = t;
+    // Auto-stop callback
+    const delay = (t - ctx.currentTime) * 1000 + 100;
+    this._notateTimer = setTimeout(() => this._onNotateEnd(), delay);
+    return t - ctx.currentTime;
+  }
+
+  stopSwaraSequence() {
+    if (this._notateTimer) { clearTimeout(this._notateTimer); this._notateTimer = null; }
+    if (this._notateNodes) {
+      this._notateNodes.forEach(n => {
+        try { n.disconnect(); if (n.stop) n.stop(0); } catch(e) {}
+      });
+      this._notateNodes = null;
+    }
+    this._onNotateEnd();
+  }
+
+  _onNotateEnd() {
+    // Reset UI play/stop buttons
+    const playBtn = document.getElementById('play-notation-btn');
+    const stopBtn = document.getElementById('stop-notation-btn');
+    if (playBtn) { playBtn.style.display = ''; }
+    if (stopBtn) { stopBtn.style.display = 'none'; }
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
@@ -972,6 +1162,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
   // ── Initial render ──────────────────────────────────────────────────────
   updatePreview();
+  updateRagaInfoBar();
 
   // ── BPM slider ──────────────────────────────────────────────────────────
   const bpmSlider = document.getElementById('bpm-slider');
@@ -1067,10 +1258,27 @@ window.addEventListener('DOMContentLoaded', () => {
     a.click();
   });
 
-  // ── Raga selector (info only, future: filter swaras) ───────────────────
-  document.getElementById('raga-sel').addEventListener('change', e => {
-    const swara = RAGA_DATA[e.target.value] || '';
-    document.getElementById('parse-status').title = `Swaras: ${swara}`;
+  // ── Raga selector → re-render with violation highlighting ───────────────
+  document.getElementById('raga-sel').addEventListener('change', () => {
+    updatePreview();
+  });
+
+  // ── Play Notation button ─────────────────────────────────────────────────
+  document.getElementById('play-notation-btn').addEventListener('click', () => {
+    const text   = editor ? editor.getValue() : '';
+    const nodes  = parse(text);
+    const saHz   = +document.getElementById('sa-note-sel').value || 261.63;
+    const bpm    = +document.getElementById('bpm-slider').value  || 80;
+    const dur    = audioEngine.playSwaraSequence(nodes, saHz, bpm);
+    document.getElementById('play-notation-btn').style.display = 'none';
+    document.getElementById('stop-notation-btn').style.display = '';
+    // Show duration
+    document.getElementById('stats').textContent +=
+      ` · ▶ ${dur.toFixed(1)}s`;
+  });
+
+  document.getElementById('stop-notation-btn').addEventListener('click', () => {
+    audioEngine.stopSwaraSequence();
   });
 });
 
@@ -1078,22 +1286,27 @@ window.addEventListener('DOMContentLoaded', () => {
 function updatePreview() {
   const text = editor ? editor.getValue() : '';
   try {
-    const nodes = parse(text);
+    const nodes      = parse(text);
+    const violations = getRagaViolations(nodes);
     const swaraCount = nodes.filter(n => n.type === 'swara').length;
     const barCount   = nodes.filter(n => n.type === 'bar' || n.type === 'sectionEnd').length;
 
     const maxW = document.getElementById('preview-scroll').clientWidth - 40 || 860;
-    const svgStr = renderSVG(nodes, { maxWidth: maxW, showLyrics: true });
+    const svgStr = renderSVG(nodes, { maxWidth: maxW, showLyrics: true }, violations);
     document.getElementById('svg-output').outerHTML =
       svgStr.replace('<svg ', '<svg id="svg-output" ');
 
     document.getElementById('parse-status').className = 'status-ok';
-    document.getElementById('parse-status').textContent = '✓ OK';
+    document.getElementById('parse-status').textContent =
+      violations.size > 0 ? `✓ OK ⚠${violations.size}` : '✓ OK';
     document.getElementById('stats').textContent =
       `${swaraCount} swaras · ${barCount} bars · ${nodes.length} nodes`;
+
+    updateRagaInfoBar(violations);
   } catch(err) {
     document.getElementById('parse-status').className = 'status-err';
     document.getElementById('parse-status').textContent = '✗ ' + err.message;
+    updateRagaInfoBar();
   }
 }
 
