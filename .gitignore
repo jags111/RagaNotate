@@ -1,6 +1,11 @@
 # OS
 .DS_Store
 Thumbs.db
+*.~lock.*
+
+# Stray GitHub-generated placeholder files
+init.py
+**/init.py
 
 # Logs
 logs

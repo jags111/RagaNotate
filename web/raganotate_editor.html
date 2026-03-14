@@ -3,213 +3,267 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>RagaNotate — Live Editor</title>
+<title>RagaNotate v0.2.0 — Live Editor</title>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
 <style>
+/* ════════════════════════════════════════════════════════════════════════
+   RagaNotate v0.2.0 — Canonical Carnatic Notation Editor
+   Notation standard: PCM / Raga Sangrah (dot-above tara, dot-below mandra)
+   Unicode tara: Ṡ Ṙ Ġ Ṁ Ṗ Ḋ Ṅ  |  Mandra: Ṣ Ṛ G̣ Ṃ P̣ Ḍ Ṇ
+   ════════════════════════════════════════════════════════════════════════ */
 :root {
-  --bg:       #0d1117; --bg2: #161b22; --bg3: #21262d;
-  --border:   #30363d; --text: #e6edf3; --muted: #8b949e;
-  --accent:   #d4a017; --accent2: #58a6ff; --red: #f85149;
-  --green:    #3fb950; --purple: #bc8cff; --orange: #ffa657;
-  --cell-w:   64px;    --cell-h: 52px;
+  --bg:#0d1117; --bg2:#161b22; --bg3:#21262d;
+  --border:#30363d; --text:#e6edf3; --muted:#8b949e;
+  --accent:#d4a017; --accent2:#58a6ff; --red:#f85149;
+  --green:#3fb950; --purple:#bc8cff; --orange:#ffa657; --teal:#4ec9b0;
+  --cell-w:64px; --cell-h:52px;
 }
 [data-theme="light"] {
   --bg:#f6f8fa; --bg2:#ffffff; --bg3:#eaeef2; --border:#d0d7de;
   --text:#1f2328; --muted:#656d76; --accent:#b07d00; --accent2:#0969da;
 }
-* { box-sizing:border-box; margin:0; padding:0; }
-body { background:var(--bg); color:var(--text); font-family:'Segoe UI',Arial,sans-serif;
-       display:flex; flex-direction:column; height:100vh; overflow:hidden; }
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:var(--bg);color:var(--text);font-family:'Segoe UI',Arial,sans-serif;
+     display:flex;flex-direction:column;height:100vh;overflow:hidden;}
 
-/* ─── HEADER ─────────────────────────────────────────────────────────────── */
-#header {
-  background:var(--bg2); border-bottom:1px solid var(--border);
-  display:flex; align-items:center; gap:12px; padding:8px 16px;
-  flex-shrink:0; flex-wrap:wrap;
-}
-#header .logo { font-size:18px; font-weight:700; color:var(--accent);
-                letter-spacing:-0.5px; white-space:nowrap; }
-#header .logo span { color:var(--accent2); }
-.ctrl-group { display:flex; align-items:center; gap:6px; }
-.ctrl-label { font-size:11px; color:var(--muted); white-space:nowrap; }
-select, input[type=range], input[type=number] {
-  background:var(--bg3); border:1px solid var(--border); color:var(--text);
-  border-radius:6px; padding:4px 8px; font-size:12px; outline:none;
-}
-select:focus, input:focus { border-color:var(--accent2); }
-input[type=range] { padding:0; cursor:pointer; accent-color:var(--accent); }
-.btn {
-  background:var(--bg3); border:1px solid var(--border); color:var(--text);
-  border-radius:6px; padding:5px 12px; font-size:12px; cursor:pointer;
-  white-space:nowrap; transition:all .15s;
-}
-.btn:hover { border-color:var(--accent2); color:var(--accent2); }
-.btn.active { background:var(--accent); border-color:var(--accent); color:#000; font-weight:600; }
-.btn.danger { border-color:var(--red); color:var(--red); }
-.btn.danger:hover { background:var(--red); color:#fff; }
-#spacer { flex:1; }
+/* ── HEADER ──────────────────────────────────────────────────────────── */
+#header{background:var(--bg2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:10px;padding:6px 14px;flex-shrink:0;flex-wrap:wrap;}
+#header .logo{font-size:17px;font-weight:700;color:var(--accent);letter-spacing:-.5px;white-space:nowrap;}
+#header .logo span{color:var(--accent2);}
+#header .logo sub{font-size:10px;color:var(--muted);}
+.ctrl-group{display:flex;align-items:center;gap:5px;}
+.ctrl-label{font-size:11px;color:var(--muted);white-space:nowrap;}
+select,input[type=range],input[type=number]{
+  background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  border-radius:5px;padding:3px 7px;font-size:12px;outline:none;}
+select:focus,input:focus{border-color:var(--accent2);}
+input[type=range]{padding:0;cursor:pointer;accent-color:var(--accent);}
+.btn{background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  border-radius:5px;padding:4px 10px;font-size:12px;cursor:pointer;
+  white-space:nowrap;transition:all .15s;}
+.btn:hover{border-color:var(--accent2);color:var(--accent2);}
+.btn.active{background:var(--accent);border-color:var(--accent);color:#000;font-weight:600;}
+.btn.danger{border-color:var(--red);color:var(--red);}
+.btn.danger:hover{background:var(--red);color:#fff;}
+.btn.green{border-color:var(--green);color:var(--green);}
+.btn.green:hover{background:var(--green);color:#000;}
+#spacer{flex:1;}
 
-/* ─── MAIN SPLIT ─────────────────────────────────────────────────────────── */
-#main { display:flex; flex:1; overflow:hidden; }
+/* ── TAB BAR ─────────────────────────────────────────────────────────── */
+#tab-bar{background:var(--bg2);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:0;padding:0 14px;flex-shrink:0;}
+.tab{padding:7px 16px;font-size:12px;cursor:pointer;color:var(--muted);
+  border-bottom:2px solid transparent;transition:all .15s;}
+.tab:hover{color:var(--text);}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:600;}
 
-/* ─── EDITOR PANE ────────────────────────────────────────────────────────── */
-#editor-pane {
-  width:38%; min-width:280px; display:flex; flex-direction:column;
-  border-right:1px solid var(--border); flex-shrink:0;
-}
-#editor-toolbar {
-  background:var(--bg2); border-bottom:1px solid var(--border);
-  padding:6px 10px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;
-}
-.sym-btn {
-  background:var(--bg3); border:1px solid var(--border); color:var(--text);
-  border-radius:4px; padding:3px 7px; font-size:12px; cursor:pointer;
-  font-family:monospace; transition:background .1s;
-}
-.sym-btn:hover { background:var(--accent); color:#000; }
-.CodeMirror {
-  flex:1; height:100%; font-size:14px; font-family:'Fira Code',monospace;
-  background:var(--bg) !important; color:var(--text) !important; line-height:1.7;
-}
-.CodeMirror-scroll { background:var(--bg) !important; }
-.CodeMirror-cursor { border-left:2px solid var(--accent) !important; }
-.cm-rn-bar   { color:#569cd6; font-weight:bold; }
-.cm-rn-swara { color:#9cdcfe; font-weight:600; }
-.cm-rn-achala{ color:var(--accent); font-weight:700; }
-.cm-rn-gamaka{ color:#4ec9b0; }
-.cm-rn-rest  { color:var(--muted); }
-.cm-rn-meta  { color:#c586c0; font-style:italic; }
-.cm-rn-dur     { color:#b5cea8; }
-.cm-rn-invalid { color:#f85149; text-decoration:underline wavy #f85149; }
+/* ── MAIN SPLIT ──────────────────────────────────────────────────────── */
+#main{display:flex;flex:1;overflow:hidden;}
 
-/* ─── RAGA INFO BAR ───────────────────────────────────────────────────────── */
-#raga-info-bar {
-  background:var(--bg3); border-bottom:1px solid var(--border);
-  padding:4px 14px; display:flex; align-items:center; gap:8px;
-  font-size:11px; color:var(--muted); flex-shrink:0;
-}
-#raga-swara-pills { display:flex; gap:4px; flex-wrap:wrap; }
-.raga-pill {
-  padding:2px 7px; border-radius:10px; font-size:10px; font-weight:600;
-  background:var(--bg2); border:1px solid var(--border); font-family:monospace;
-}
-.raga-pill.achala { border-color:var(--accent); color:var(--accent); }
-.raga-pill.chala  { border-color:var(--accent2); color:var(--accent2); }
-#notate-warn { color:var(--red); font-size:11px; }
+/* ── EDITOR PANE ─────────────────────────────────────────────────────── */
+#editor-pane{width:36%;min-width:260px;display:flex;flex-direction:column;
+  border-right:1px solid var(--border);flex-shrink:0;}
+#editor-toolbar{background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:5px 9px;display:flex;align-items:center;gap:4px;flex-wrap:wrap;}
+.sym-btn{background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  border-radius:3px;padding:2px 6px;font-size:11px;cursor:pointer;
+  font-family:monospace;transition:background .1s;}
+.sym-btn:hover{background:var(--accent);color:#000;}
+.sym-sep{width:1px;height:16px;background:var(--border);margin:0 2px;}
+.CodeMirror{flex:1;height:100%;font-size:13px;font-family:'Fira Code',monospace;
+  background:var(--bg) !important;color:var(--text) !important;line-height:1.8;}
+.CodeMirror-scroll{background:var(--bg) !important;}
+.CodeMirror-cursor{border-left:2px solid var(--accent) !important;}
+.cm-rn-bar{color:#569cd6;font-weight:bold;}
+.cm-rn-swara{color:#9cdcfe;font-weight:600;}
+.cm-rn-achala{color:var(--accent);font-weight:700;}
+.cm-rn-gamaka{color:#4ec9b0;}
+.cm-rn-rest{color:var(--muted);}
+.cm-rn-meta{color:#c586c0;font-style:italic;}
+.cm-rn-dur{color:#b5cea8;}
+.cm-rn-tara{color:var(--orange);}
+.cm-rn-mandra{color:var(--accent2);}
+.cm-rn-invalid{color:#f85149;text-decoration:underline wavy #f85149;}
 
-/* ─── PREVIEW PANE ───────────────────────────────────────────────────────── */
-#preview-pane {
-  flex:1; display:flex; flex-direction:column; overflow:hidden; background:var(--bg);
-}
-#preview-header {
-  background:var(--bg2); border-bottom:1px solid var(--border);
-  padding:6px 14px; display:flex; align-items:center; gap:10px; font-size:12px;
-}
-#parse-status { padding:3px 8px; border-radius:4px; font-size:11px; }
-.status-ok  { background:#1a3a1a; color:var(--green); }
-.status-err { background:#3a1a1a; color:var(--red); }
-#preview-scroll { flex:1; overflow:auto; padding:20px; }
-#svg-output { display:block; }
-#stats { color:var(--muted); font-size:11px; }
+/* ── RAGA INFO BAR ───────────────────────────────────────────────────── */
+#raga-info-bar{background:var(--bg3);border-bottom:1px solid var(--border);
+  padding:3px 12px;display:flex;align-items:center;gap:7px;
+  font-size:11px;color:var(--muted);flex-shrink:0;}
+#raga-swara-pills{display:flex;gap:3px;flex-wrap:wrap;}
+.raga-pill{padding:1px 6px;border-radius:9px;font-size:10px;font-weight:600;
+  background:var(--bg2);border:1px solid var(--border);font-family:monospace;}
+.raga-pill.achala{border-color:var(--accent);color:var(--accent);}
+.raga-pill.chala{border-color:var(--accent2);color:var(--accent2);}
+#raga-detail{font-size:10px;color:var(--muted);}
+#notate-warn{color:var(--red);font-size:11px;}
 
-/* ─── BOTTOM PANEL ───────────────────────────────────────────────────────── */
-#bottom {
-  background:var(--bg2); border-top:1px solid var(--border);
-  flex-shrink:0; user-select:none;
-}
-#tala-section {
-  padding:10px 16px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
-  border-bottom:1px solid var(--border);
-}
-#tala-label { font-size:11px; color:var(--muted); min-width:50px; }
-#beat-clock { display:flex; gap:4px; flex-wrap:wrap; align-items:center; }
-.anga-group { display:flex; gap:2px; align-items:center; margin-right:6px; }
-.anga-label { font-size:9px; color:var(--muted); margin-right:2px; }
-.beat-cell {
-  width:32px; height:28px; border-radius:5px; border:2px solid var(--border);
-  display:flex; align-items:center; justify-content:center;
-  font-size:11px; font-weight:600; color:var(--muted);
-  transition:all .1s; background:var(--bg3); cursor:default;
-}
-.beat-cell.sam   { border-color:var(--accent); color:var(--accent); }
-.beat-cell.active{
-  background:var(--accent); border-color:var(--accent); color:#000;
-  transform:scale(1.15); box-shadow:0 0 8px var(--accent);
-}
-.beat-cell.laghu { border-color:#58a6ff44; }
-.beat-cell.drutam{ border-color:#3fb95044; }
-.beat-cell.anudruta { border-color:#bc8cff44; }
-#beat-counter { font-size:20px; font-weight:700; color:var(--accent); min-width:48px; }
-#bpm-display  { font-size:11px; color:var(--muted); }
-#transport-btns { display:flex; gap:6px; }
+/* ── PREVIEW PANE ────────────────────────────────────────────────────── */
+#preview-pane{flex:1;display:flex;flex-direction:column;overflow:hidden;background:var(--bg);}
+#preview-header{background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:5px 12px;display:flex;align-items:center;gap:8px;font-size:12px;}
+#parse-status{padding:2px 7px;border-radius:4px;font-size:11px;}
+.status-ok{background:#1a3a1a;color:var(--green);}
+.status-err{background:#3a1a1a;color:var(--red);}
+#preview-scroll{flex:1;overflow:auto;padding:16px;}
+#svg-output{display:block;}
+#stats{color:var(--muted);font-size:11px;}
 
-/* ─── AUDIO SECTION ──────────────────────────────────────────────────────── */
-#audio-section {
-  padding:10px 16px; display:flex; align-items:center; gap:14px; flex-wrap:wrap;
-}
-.audio-group { display:flex; align-items:center; gap:6px; }
-.audio-label { font-size:11px; color:var(--muted); }
-.inst-btn { border-radius:20px; padding:4px 12px; font-size:11px; }
-#drone-section { display:flex; align-items:center; gap:8px; }
-.drone-note {
-  width:36px; height:28px; border-radius:5px; border:1px solid var(--border);
-  display:flex; align-items:center; justify-content:center;
-  font-size:11px; font-weight:600; cursor:pointer; background:var(--bg3);
-  transition:all .15s;
-}
-.drone-note.on  { background:var(--purple); border-color:var(--purple); color:#fff; }
-.drone-note:hover{ border-color:var(--purple); }
-#volume-slider { width:80px; }
-#drone-viz { display:flex; gap:3px; align-items:center; }
-.drone-bar {
-  width:3px; border-radius:2px; background:var(--purple); opacity:0.3;
-  transition:height .15s, opacity .15s;
-}
+/* ── GEETHAM EDITOR PANE ─────────────────────────────────────────────── */
+#geetham-pane{flex:1;display:none;flex-direction:column;overflow:hidden;background:var(--bg);}
+#geetham-pane.active{display:flex;}
+#geetham-toolbar{background:var(--bg2);border-bottom:1px solid var(--border);
+  padding:6px 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+#geetham-content{flex:1;overflow:auto;padding:16px;}
+.composition-header{background:var(--bg2);border:1px solid var(--border);
+  border-radius:8px;padding:12px 16px;margin-bottom:14px;}
+.composition-header input,.composition-header select{
+  background:var(--bg3);border:1px solid var(--border);color:var(--text);
+  border-radius:5px;padding:4px 9px;font-size:13px;width:100%;margin-top:4px;}
+.comp-field{margin-bottom:8px;}
+.comp-field label{font-size:11px;color:var(--muted);display:block;}
+.section-block{background:var(--bg2);border:1px solid var(--border);
+  border-radius:8px;padding:12px 16px;margin-bottom:12px;}
+.section-block h4{font-size:12px;color:var(--accent);margin-bottom:10px;
+  text-transform:uppercase;letter-spacing:1px;}
+.notation-row,.lyrics-row{display:flex;align-items:center;gap:0;margin-bottom:4px;
+  border-radius:5px;overflow:hidden;border:1px solid var(--border);}
+.row-label{font-size:10px;color:var(--muted);min-width:68px;padding:6px 8px;
+  background:var(--bg3);border-right:1px solid var(--border);text-align:center;}
+.row-cells{display:flex;flex:1;overflow-x:auto;}
+.notation-cell,.lyrics-cell{min-width:52px;border-right:1px solid var(--border);
+  font-family:monospace;font-size:13px;padding:5px 4px;text-align:center;
+  background:transparent;border-top:none;border-bottom:none;border-left:none;
+  color:var(--text);outline:none;}
+.notation-cell:focus,.lyrics-cell:focus{background:var(--bg3);box-shadow:inset 0 0 0 1px var(--accent2);}
+.bar-marker{min-width:12px;background:var(--bg3);border-right:1px solid var(--accent2);
+  display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--accent2);}
+.geetham-svg{display:block;margin-top:12px;}
+.add-section-btn{margin-top:10px;}
 
-/* ─── SCROLLBAR ──────────────────────────────────────────────────────────── */
-::-webkit-scrollbar { width:6px; height:6px; }
-::-webkit-scrollbar-track { background:transparent; }
-::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+/* ── BOTTOM PANEL ────────────────────────────────────────────────────── */
+#bottom{background:var(--bg2);border-top:1px solid var(--border);flex-shrink:0;user-select:none;}
+#tala-section{padding:8px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  border-bottom:1px solid var(--border);}
+#tala-label{font-size:11px;color:var(--muted);min-width:46px;}
+#beat-clock{display:flex;gap:3px;flex-wrap:wrap;align-items:center;}
+.anga-group{display:flex;gap:2px;align-items:center;margin-right:5px;}
+.anga-label{font-size:9px;color:var(--muted);margin-right:2px;}
+.beat-cell{width:30px;height:26px;border-radius:4px;border:2px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:10px;font-weight:600;color:var(--muted);
+  transition:all .1s;background:var(--bg3);cursor:default;}
+.beat-cell.sam{border-color:var(--accent);color:var(--accent);}
+.beat-cell.active{background:var(--accent);border-color:var(--accent);color:#000;
+  transform:scale(1.12);box-shadow:0 0 7px var(--accent);}
+.beat-cell.laghu{border-color:#58a6ff44;}
+.beat-cell.drutam{border-color:#3fb95044;}
+.beat-cell.anudruta{border-color:#bc8cff44;}
+#beat-counter{font-size:18px;font-weight:700;color:var(--accent);min-width:44px;}
+#bpm-display{font-size:11px;color:var(--muted);}
+#transport-btns{display:flex;gap:5px;}
 
-/* ─── TOOLTIP ────────────────────────────────────────────────────────────── */
-[title] { cursor:help; }
+/* ── AUDIO SECTION ───────────────────────────────────────────────────── */
+#audio-section{padding:7px 14px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;}
+.audio-group{display:flex;align-items:center;gap:5px;}
+.audio-label{font-size:11px;color:var(--muted);}
+.inst-btn{border-radius:18px;padding:3px 10px;font-size:11px;}
+#drone-section{display:flex;align-items:center;gap:6px;}
+.drone-note{width:34px;height:26px;border-radius:4px;border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  font-size:11px;font-weight:600;cursor:pointer;background:var(--bg3);transition:all .15s;}
+.drone-note.on{background:var(--purple);border-color:var(--purple);color:#fff;}
+.drone-note:hover{border-color:var(--purple);}
+#volume-slider{width:72px;}
+#drone-viz{display:flex;gap:2px;align-items:center;}
+.drone-bar{width:3px;border-radius:2px;background:var(--purple);opacity:.3;
+  transition:height .15s,opacity .15s;}
+
+/* ── NOTATION REFERENCE PANEL ────────────────────────────────────────── */
+#ref-panel{display:none;position:fixed;top:56px;right:14px;width:320px;
+  background:var(--bg2);border:1px solid var(--border);border-radius:8px;
+  padding:12px;z-index:100;max-height:70vh;overflow:auto;box-shadow:0 8px 24px #0008;}
+#ref-panel.open{display:block;}
+#ref-panel h3{font-size:13px;color:var(--accent);margin-bottom:8px;}
+#ref-panel table{width:100%;border-collapse:collapse;font-size:11px;}
+#ref-panel td,#ref-panel th{padding:3px 6px;text-align:left;border-bottom:1px solid var(--border);}
+#ref-panel th{color:var(--muted);font-weight:400;}
+#ref-panel .ref-sym{font-family:monospace;color:var(--accent2);}
+#ref-panel .ref-uni{font-size:14px;}
+
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+[title]{cursor:help;}
 </style>
 </head>
 <body>
 
-<!-- ═══════════════ HEADER ═══════════════════════════════════════════════ -->
+<!-- ═══ HEADER ══════════════════════════════════════════════════════════ -->
 <div id="header">
-  <div class="logo">Raga<span>Notate</span></div>
+  <div class="logo">Raga<span>Notate</span> <sub>v0.2</sub></div>
 
   <div class="ctrl-group">
     <span class="ctrl-label">Raga</span>
-    <select id="raga-sel">
-      <option value="Hamsadhvani">Hamsadhvani</option>
-      <option value="Shankarabharanam">Shankarabharanam</option>
-      <option value="Kalyani">Kalyani</option>
-      <option value="Bhairavi">Bhairavi</option>
-      <option value="Mohanam">Mohanam</option>
-      <option value="Bilahari">Bilahari</option>
-      <option value="Todi">Todi</option>
-      <option value="Kharaharapriya">Kharaharapriya</option>
+    <select id="raga-sel" style="min-width:160px;max-width:220px">
+      <optgroup label="— Popular Janya Ragas —">
+        <option value="Hamsadhvani">Hamsadhvani</option>
+        <option value="Mohanam">Mohanam</option>
+        <option value="Bilahari">Bilahari</option>
+        <option value="Dhanyasi">Dhanyasi</option>
+        <option value="Abheri">Abheri</option>
+        <option value="Hindolam">Hindolam</option>
+        <option value="Sriranjani">Sriranjani</option>
+        <option value="Bhairavi">Bhairavi</option>
+        <option value="Todi">Todi</option>
+        <option value="Kapi">Kapi</option>
+        <option value="Malahari">Malahari</option>
+        <option value="Punnagavarali">Punnagavarali</option>
+      </optgroup>
+      <optgroup label="— Melakarta Ragas (M1) —">
+        <option value="Mayamalavagowla">15 Mayamalavagowla</option>
+        <option value="Kharaharapriya">22 Kharaharapriya</option>
+        <option value="Harikambhoji">28 Harikambhoji</option>
+        <option value="Shankarabharanam">29 Shankarabharanam</option>
+        <option value="Natabhairavi">20 Natabhairavi</option>
+        <option value="Hanumatodi">8 Hanumatodi</option>
+        <option value="Kanakangi">1 Kanakangi</option>
+        <option value="Senavati">7 Senavati</option>
+        <option value="Jhankaradhvani">19 Jhankaradhvani</option>
+        <option value="Charukesi">26 Charukesi</option>
+        <option value="Mechakalyani_m1">29 Shankarabharanam</option>
+      </optgroup>
+      <optgroup label="— Melakarta Ragas (M2) —">
+        <option value="Mechakalyani">65 Mechakalyani (Kalyani)</option>
+        <option value="Shanmukhapriya">56 Shanmukhapriya</option>
+        <option value="Kamavardhini">51 Kamavardhini (Pantuvarali)</option>
+        <option value="Shubhapantuvarali">45 Shubhapantuvarali</option>
+        <option value="Hemavati">58 Hemavati</option>
+        <option value="Dharmavati">59 Dharmavati</option>
+        <option value="Vachaspati">64 Vachaspati</option>
+      </optgroup>
     </select>
   </div>
 
   <div class="ctrl-group">
     <span class="ctrl-label">Sa</span>
-    <select id="sa-note-sel">
-      <option value="240">C (240 Hz)</option>
-      <option value="254.18">C# (254.18 Hz)</option>
-      <option value="269.33">D (269.33 Hz)</option>
-      <option value="285.42">D# (285.42 Hz)</option>
-      <option value="302.40">E (302.40 Hz)</option>
-      <option value="320.43">F (320.43 Hz)</option>
-      <option value="339.43">F# (339.43 Hz)</option>
-      <option value="359.47">G (359.47 Hz)</option>
-      <option value="380.74">G# (380.74 Hz)</option>
-      <option value="403.33">A (403.33 Hz)</option>
-      <option value="261.63" selected>C4 / 261.63</option>
+    <select id="sa-note-sel" style="min-width:130px">
+      <option value="240">C (240 Hz) Traditional</option>
+      <option value="256">C (256 Hz) Scientific</option>
+      <option value="261.63" selected>C4 (261.63 Hz) Concert</option>
+      <option value="277.18">C# / Db (277.18 Hz)</option>
+      <option value="293.66">D (293.66 Hz)</option>
+      <option value="311.13">D# / Eb (311.13 Hz)</option>
+      <option value="329.63">E (329.63 Hz)</option>
+      <option value="349.23">F (349.23 Hz)</option>
+      <option value="369.99">F# / Gb (369.99 Hz)</option>
+      <option value="392.00">G (392.00 Hz)</option>
+      <option value="415.30">G# / Ab (415.30 Hz)</option>
+      <option value="440.00">A / A440 (440 Hz)</option>
+      <option value="466.16">Bb / A# (466.16 Hz)</option>
+      <option value="493.88">B (493.88 Hz)</option>
+      <option value="220.00">A3 (220 Hz) Lower Male</option>
     </select>
   </div>
 
@@ -224,67 +278,167 @@ input[type=range] { padding:0; cursor:pointer; accent-color:var(--accent); }
       <option value="Dhruva">Dhruva (14)</option>
       <option value="Ata">Ata (14)</option>
       <option value="Eka">Eka (4)</option>
+      <option value="Thisra_Chapu">Thisra Chapu (3)</option>
+      <option value="Khanda_Chapu">Khanda Chapu (5)</option>
+      <option value="Misra_Chapu">Misra Chapu (7)</option>
     </select>
   </div>
 
   <div class="ctrl-group">
     <span class="ctrl-label">BPM</span>
-    <input type="range" id="bpm-slider" min="40" max="240" value="80" style="width:70px">
-    <span id="bpm-val" style="font-size:12px;min-width:28px">80</span>
+    <input type="range" id="bpm-slider" min="40" max="240" value="80" style="width:80px">
+    <span id="bpm-val" style="font-size:12px;min-width:30px">80</span>
+    <select id="bpm-preset" style="font-size:11px;padding:2px 5px" title="Speed preset">
+      <option value="">Preset</option>
+      <option value="60">60 Vilamba</option>
+      <option value="80">80 Madhya</option>
+      <option value="100">100 Medium</option>
+      <option value="120">120 Durita</option>
+      <option value="160">160 Fast</option>
+      <option value="200">200 V.Fast</option>
+    </select>
   </div>
 
   <div id="spacer"></div>
 
+  <button class="btn" id="ref-btn" title="Notation reference">📖 Ref</button>
   <button class="btn" id="export-svg-btn" title="Export SVG">⬇ SVG</button>
   <button class="btn" id="theme-btn" title="Toggle theme">☀</button>
 </div>
 
-<!-- ═══════════════ MAIN SPLIT ═══════════════════════════════════════════ -->
+<!-- ═══ TAB BAR ══════════════════════════════════════════════════════════ -->
+<div id="tab-bar">
+  <div class="tab active" data-tab="notation">Notation Editor</div>
+  <div class="tab" data-tab="geetham">Geetham / Composition Editor</div>
+  <div class="tab" data-tab="ragas">Raga Reference</div>
+</div>
+
+<!-- ═══ MAIN CONTENT ══════════════════════════════════════════════════════ -->
 <div id="main">
 
-  <!-- ── EDITOR PANE ───────────────────────────────────────────────────── -->
+  <!-- ── NOTATION EDITOR PANE ─────────────────────────────────────────── -->
   <div id="editor-pane">
     <div id="editor-toolbar">
-      <span class="ctrl-label">Insert:</span>
+      <span class="ctrl-label" style="font-size:10px">Beat:</span>
       <button class="sym-btn" data-insert="| ">|</button>
       <button class="sym-btn" data-insert="|| ">||</button>
-      <button class="sym-btn" data-insert="- ">-</button>
+      <button class="sym-btn" data-insert="- ">–</button>
       <button class="sym-btn" data-insert=", ">,</button>
-      <button class="sym-btn" data-insert="~ ">~</button>
-      <button class="sym-btn" data-insert="/ ">/</button>
-      <button class="sym-btn" data-insert="\ ">\ </button>
-      <button class="sym-btn" data-insert="^ ">^</button>
-      <button class="sym-btn" data-insert="w ">w</button>
-      <button class="sym-btn" data-insert="; ">;</button>
-      <button class="sym-btn" data-insert=": ">:</button>
-      <button class="sym-btn" data-insert="' ">'</button>
-      <button class="sym-btn" data-insert=". ">.</button>
+      <div class="sym-sep"></div>
+      <span class="ctrl-label" style="font-size:10px">Gamaka:</span>
+      <button class="sym-btn" data-insert="~" title="Kampita (oscillation)">~</button>
+      <button class="sym-btn" data-insert="/" title="Etra Jaru (slide up)">/</button>
+      <button class="sym-btn" data-insert="\" title="Irakka Jaru (slide down)">\</button>
+      <button class="sym-btn" data-insert="^" title="Sphurita (grace up)">^</button>
+      <button class="sym-btn" data-insert="v" title="Pratyaghata (grace down)">v</button>
+      <button class="sym-btn" data-insert="w" title="Andola (wide oscillation)">w</button>
+      <div class="sym-sep"></div>
+      <span class="ctrl-label" style="font-size:10px">Dur:</span>
+      <button class="sym-btn" data-insert=";" title="Double duration (2×)">;</button>
+      <button class="sym-btn" data-insert=":" title="Half duration (½)">:</button>
+      <div class="sym-sep"></div>
+      <span class="ctrl-label" style="font-size:10px">Octave:</span>
+      <button class="sym-btn" data-insert="'" title="Tara (upper octave)">'</button>
+      <button class="sym-btn" data-insert="." title="Mandra (lower octave)">.</button>
     </div>
     <textarea id="editor-textarea"></textarea>
   </div>
 
-  <!-- ── PREVIEW PANE ──────────────────────────────────────────────────── -->
+  <!-- ── NOTATION PREVIEW PANE ────────────────────────────────────────── -->
   <div id="preview-pane">
     <div id="preview-header">
       <span id="parse-status" class="status-ok">✓ Ready</span>
       <span id="stats"></span>
       <div style="flex:1"></div>
-      <button class="btn" id="play-notation-btn" title="Play notation via Web Audio">▶ Play Notation</button>
-      <button class="btn" id="stop-notation-btn" title="Stop notation playback" style="display:none">■ Stop</button>
-      <span style="font-size:11px;color:var(--muted);margin-left:8px">Live SVG Preview</span>
+      <button class="btn green" id="play-notation-btn">▶ Play</button>
+      <button class="btn danger" id="stop-notation-btn" style="display:none">■ Stop</button>
+      <span style="font-size:10px;color:var(--muted);margin-left:8px">SVG Preview</span>
     </div>
     <div id="raga-info-bar">
-      <span style="color:var(--muted);white-space:nowrap">Raga scale:</span>
+      <span style="color:var(--muted);white-space:nowrap;font-size:10px">Scale:</span>
       <div id="raga-swara-pills"></div>
+      <span id="raga-detail"></span>
+      <span style="flex:1"></span>
       <span id="notate-warn"></span>
     </div>
     <div id="preview-scroll">
       <svg id="svg-output" xmlns="http://www.w3.org/2000/svg"></svg>
     </div>
   </div>
-</div>
 
-<!-- ═══════════════ BOTTOM PANEL ═════════════════════════════════════════ -->
+  <!-- ── GEETHAM / COMPOSITION EDITOR ─────────────────────────────────── -->
+  <div id="geetham-pane">
+    <div id="geetham-toolbar">
+      <div class="ctrl-group">
+        <span class="ctrl-label">Section</span>
+        <button class="btn" id="add-section-btn">+ Add Section</button>
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Cells/bar</span>
+        <select id="cells-per-bar">
+          <option value="4">4</option>
+          <option value="6">6</option>
+          <option value="8" selected>8</option>
+          <option value="14">14</option>
+          <option value="16">16</option>
+        </select>
+      </div>
+      <div class="ctrl-group">
+        <span class="ctrl-label">Show</span>
+        <label style="font-size:12px;cursor:pointer">
+          <input type="checkbox" id="show-phonetic" checked> Phonetic
+        </label>
+        <label style="font-size:12px;cursor:pointer;margin-left:6px">
+          <input type="checkbox" id="show-lyrics" checked> Lyrics
+        </label>
+      </div>
+      <div style="flex:1"></div>
+      <button class="btn green" id="play-geetham-btn">▶ Play Geetham</button>
+      <button class="btn" id="export-geetham-btn">⬇ Export SVG</button>
+    </div>
+    <div id="geetham-content">
+      <!-- Composition header -->
+      <div class="composition-header">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
+          <div class="comp-field">
+            <label>Composition Title</label>
+            <input type="text" id="comp-title" placeholder="e.g. Jayakaru Geetam" value="Jayakaru Geetam">
+          </div>
+          <div class="comp-field">
+            <label>Raga</label>
+            <input type="text" id="comp-raga" placeholder="e.g. Dhanyasi" value="Dhanyasi (8th mela janyam)">
+          </div>
+          <div class="comp-field">
+            <label>Tala</label>
+            <input type="text" id="comp-tala" placeholder="e.g. Chaturashra Dhruvam" value="Chaturashra Dhruvam">
+          </div>
+          <div class="comp-field">
+            <label>Arohanam</label>
+            <input type="text" id="comp-aro" placeholder="S R G M P D N S'" value="S g m P N+ S'">
+          </div>
+          <div class="comp-field">
+            <label>Avarohanam</label>
+            <input type="text" id="comp-ava" placeholder="S' N D P M G R S" value="S' N+ d P m g r S">
+          </div>
+          <div class="comp-field">
+            <label>Composer / Source</label>
+            <input type="text" id="comp-source" placeholder="Composer name">
+          </div>
+        </div>
+      </div>
+      <!-- Sections container -->
+      <div id="sections-container"></div>
+    </div>
+  </div>
+
+  <!-- ── RAGA REFERENCE PANE ─────────────────────────────────────────── -->
+  <div id="raga-ref-pane" style="display:none;flex:1;overflow:auto;padding:16px;background:var(--bg);">
+    <div id="raga-ref-content"></div>
+  </div>
+
+</div><!-- /#main -->
+
+<!-- ═══ BOTTOM PANEL ═════════════════════════════════════════════════════ -->
 <div id="bottom">
   <!-- Tala Clock -->
   <div id="tala-section">
@@ -294,15 +448,14 @@ input[type=range] { padding:0; cursor:pointer; accent-color:var(--accent); }
     <span id="bpm-display">@ 80 BPM</span>
     <div style="flex:1"></div>
     <div id="transport-btns">
-      <button class="btn" id="play-btn">▶ Play</button>
+      <button class="btn" id="play-btn">▶ Tala</button>
       <button class="btn" id="stop-btn">■ Stop</button>
     </div>
   </div>
-
   <!-- Audio Controls -->
   <div id="audio-section">
     <div class="audio-group">
-      <span class="audio-label">Instrument</span>
+      <span class="audio-label">Percussion</span>
       <button class="btn inst-btn active" id="inst-mridangam">🥁 Mridangam</button>
       <button class="btn inst-btn" id="inst-harmonium">🎹 Harmonium</button>
       <button class="btn inst-btn" id="inst-bell">🔔 Bell</button>
@@ -310,7 +463,7 @@ input[type=range] { padding:0; cursor:pointer; accent-color:var(--accent); }
     </div>
     <div class="audio-group">
       <span class="audio-label">Vol</span>
-      <input type="range" id="volume-slider" min="0" max="100" value="70">
+      <input type="range" id="volume-slider" min="0" max="100" value="70" style="width:72px">
     </div>
     <div id="drone-section">
       <span class="audio-label">Shruti Drone</span>
@@ -318,125 +471,204 @@ input[type=range] { padding:0; cursor:pointer; accent-color:var(--accent); }
       <div class="drone-note" id="drone-pa" title="Pa drone">Pa</div>
       <div class="drone-note" id="drone-sa2" title="Sa' drone">Sa'</div>
       <div id="drone-viz">
-        <div class="drone-bar" style="height:8px"></div>
-        <div class="drone-bar" style="height:14px"></div>
-        <div class="drone-bar" style="height:20px"></div>
-        <div class="drone-bar" style="height:14px"></div>
-        <div class="drone-bar" style="height:8px"></div>
+        <div class="drone-bar" style="height:7px"></div>
+        <div class="drone-bar" style="height:13px"></div>
+        <div class="drone-bar" style="height:18px"></div>
+        <div class="drone-bar" style="height:13px"></div>
+        <div class="drone-bar" style="height:7px"></div>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ═══ NOTATION REFERENCE PANEL (floating) ══════════════════════════════ -->
+<div id="ref-panel">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+    <h3>📖 Notation Quick Reference</h3>
+    <button class="btn" style="padding:2px 7px;font-size:11px" onclick="document.getElementById('ref-panel').classList.remove('open')">✕</button>
+  </div>
+  <table>
+    <tr><th>ASCII</th><th>Unicode</th><th>Name</th><th>Ratio</th></tr>
+    <tr><td class="ref-sym">S</td><td class="ref-uni">S</td><td>Shadjam (Sa)</td><td>1/1</td></tr>
+    <tr><td class="ref-sym">r</td><td class="ref-uni">R₁</td><td>Suddha Ri</td><td>16/15</td></tr>
+    <tr><td class="ref-sym">R</td><td class="ref-uni">R₂</td><td>Chatusruti Ri</td><td>9/8</td></tr>
+    <tr><td class="ref-sym">g</td><td class="ref-uni">G₂/R₃</td><td>Sadharana Ga</td><td>6/5</td></tr>
+    <tr><td class="ref-sym">G+</td><td class="ref-uni">G₃</td><td>Antara Ga</td><td>5/4</td></tr>
+    <tr><td class="ref-sym">m</td><td class="ref-uni">M₁</td><td>Suddha Ma</td><td>4/3</td></tr>
+    <tr><td class="ref-sym">M</td><td class="ref-uni">M₂</td><td>Prati Ma</td><td>45/32</td></tr>
+    <tr><td class="ref-sym">P</td><td class="ref-uni">P</td><td>Panchamam (Pa)</td><td>3/2</td></tr>
+    <tr><td class="ref-sym">d</td><td class="ref-uni">D₁</td><td>Suddha Dha</td><td>8/5</td></tr>
+    <tr><td class="ref-sym">D</td><td class="ref-uni">D₂</td><td>Chatusruti Dha</td><td>5/3</td></tr>
+    <tr><td class="ref-sym">n</td><td class="ref-uni">N₂/D₃</td><td>Kaisika Ni</td><td>9/5</td></tr>
+    <tr><td class="ref-sym">N+</td><td class="ref-uni">N₃</td><td>Kakali Ni</td><td>15/8</td></tr>
+    <tr><td class="ref-sym">S'</td><td class="ref-uni">Ṡ</td><td>Tara Sa</td><td>2/1</td></tr>
+    <tr><td class="ref-sym">.S</td><td class="ref-uni">Ṣ</td><td>Mandra Sa</td><td>1/2</td></tr>
+  </table>
+  <div style="margin-top:10px;font-size:11px;color:var(--muted)">
+    <strong style="color:var(--text)">Gamakas:</strong><br>
+    ~ kampita · / jaru-up · \ jaru-down · ^ sphurita · v pratyaghata · w andola<br><br>
+    <strong style="color:var(--text)">Duration:</strong><br>
+    S=1× · S;=2× · S;;=4× · S:=½ · S::=¼<br><br>
+    <strong style="color:var(--text)">Octave:</strong><br>
+    S R G (madhya) · S' R' G' (tara) · .S .R .G (mandra)
   </div>
 </div>
 
 <script>
 'use strict';
 // ═══════════════════════════════════════════════════════════════════════════
-// 1. SWARASTHANA DATA  (v0.1.3 — Option B ratios)
+// 1. SWARASTHANA DATA  (16 swarasthanas, 12 unique pitch positions)
+//    Notation standard: PCM / Raga Sangrah (Jags 2026)
+//    Unicode: Ṡ=tara, Ṣ=mandra | ASCII: S'=tara, .S=mandra
 // ═══════════════════════════════════════════════════════════════════════════
 const SWARA_DATA = {
-  'S':  { ph:'Sa',  token:'SA_0', ratio:1,         achala:true,  grp:'sa' },
-  'r':  { ph:'Ra',  token:'RI_1', ratio:16/15,      achala:false, grp:'ri' },
-  'R':  { ph:'Ri',  token:'RI_2', ratio:9/8,        achala:false, grp:'ri' },
-  'g':  { ph:'Rhi', token:'GA_1', ratio:6/5,        achala:false, grp:'ga' },
-  'G+': { ph:'Ga',  token:'GA_3', ratio:31/24,      achala:false, grp:'ga' },
-  'm':  { ph:'Ma',  token:'MA_1', ratio:4/3,        achala:false, grp:'ma' },
-  'M':  { ph:'Mi',  token:'MA_2', ratio:45/32,      achala:false, grp:'ma' },
-  'P':  { ph:'Pa',  token:'PA_0', ratio:3/2,        achala:true,  grp:'pa' },
-  'd':  { ph:'Da',  token:'DA_1', ratio:8/5,        achala:false, grp:'da' },
-  'D':  { ph:'Dha', token:'DA_2', ratio:17/10,      achala:false, grp:'da' },
-  'n':  { ph:'Ni',  token:'NI_1', ratio:9/5,        achala:false, grp:'ni' },
-  'N+': { ph:'Nei', token:'NI_3', ratio:19/10,      achala:false, grp:'ni' },
+  'S':  { ph:'Sa',  full:'Shadjam',            token:'SA_0',  ratio:1,      achala:true,  grp:'sa', pos:1,  uni_m:'S',  uni_t:'Ṡ', uni_l:'Ṣ' },
+  'r':  { ph:'Ra',  full:'Suddha Rishabham',   token:'RI_1',  ratio:16/15,  achala:false, grp:'ri', pos:2,  uni_m:'R₁', uni_t:'Ṙ₁',uni_l:'Ṛ₁'},
+  'R':  { ph:'Ri',  full:'Chatusruti Ri',      token:'RI_2',  ratio:9/8,    achala:false, grp:'ri', pos:3,  uni_m:'R₂', uni_t:'Ṙ₂',uni_l:'Ṛ₂'},
+  'g':  { ph:'Gi',  full:'Sadharana Ga',       token:'GA_2',  ratio:6/5,    achala:false, grp:'ga', pos:4,  uni_m:'G₂', uni_t:'Ġ₂',uni_l:'G̣₂'},
+  'G+': { ph:'Gu',  full:'Antara Gandharam',   token:'GA_3',  ratio:5/4,    achala:false, grp:'ga', pos:5,  uni_m:'G₃', uni_t:'Ġ₃',uni_l:'G̣₃'},
+  'm':  { ph:'Ma',  full:'Suddha Madhyamam',   token:'MA_1',  ratio:4/3,    achala:false, grp:'ma', pos:6,  uni_m:'M₁', uni_t:'Ṁ₁',uni_l:'Ṃ₁'},
+  'M':  { ph:'Mi',  full:'Prati Madhyamam',    token:'MA_2',  ratio:45/32,  achala:false, grp:'ma', pos:7,  uni_m:'M₂', uni_t:'Ṁ₂',uni_l:'Ṃ₂'},
+  'P':  { ph:'Pa',  full:'Panchamam',          token:'PA_0',  ratio:3/2,    achala:true,  grp:'pa', pos:8,  uni_m:'P',  uni_t:'Ṗ', uni_l:'P̣' },
+  'd':  { ph:'Da',  full:'Suddha Dhaivatam',   token:'DA_1',  ratio:8/5,    achala:false, grp:'da', pos:9,  uni_m:'D₁', uni_t:'Ḋ₁',uni_l:'Ḍ₁'},
+  'D':  { ph:'Di',  full:'Chatusruti Dha',     token:'DA_2',  ratio:5/3,    achala:false, grp:'da', pos:10, uni_m:'D₂', uni_t:'Ḋ₂',uni_l:'Ḍ₂'},
+  'n':  { ph:'Ni',  full:'Kaisika Nishadam',   token:'NI_2',  ratio:9/5,    achala:false, grp:'ni', pos:11, uni_m:'N₂', uni_t:'Ṅ₂',uni_l:'Ṇ₂'},
+  'N+': { ph:'Nu',  full:'Kakali Nishadam',    token:'NI_3',  ratio:15/8,   achala:false, grp:'ni', pos:12, uni_m:'N₃', uni_t:'Ṅ₃',uni_l:'Ṇ₃'},
 };
 
 const VARIANT_ALIAS = {
-  'R1':'r','R2':'R','R3':'g','G1':'R','G2':'g','G3':'G+',
-  'M1':'m','M2':'M','D1':'d','D2':'D','D3':'n','N1':'D','N2':'n','N3':'N+',
+  'R1':'r','R2':'R','R3':'g','G1':'R','G2':'g','G3':'G+','G':'g',
+  'M1':'m','M2':'M','D1':'d','D2':'D','D3':'n','N1':'D','N2':'n','N3':'N+','N':'n',
   'S':'S','P':'P',
 };
 
 const GRP_COLOR = {
-  sa:'#d4a017', ri:'#58a6ff', ga:'#3fb950', ma:'#bc8cff',
-  pa:'#d4a017', da:'#f85149', ni:'#ffa657',
+  sa:'#d4a017',ri:'#58a6ff',ga:'#3fb950',ma:'#bc8cff',
+  pa:'#d4a017',da:'#f85149',ni:'#ffa657',
+};
+
+const GAMAKA_SYM = {
+  kampita:'~',jaru_up:'/',jaru_down:'\\',sphurita:'^',
+  andola:'w',pratyaghata:'v',tribhinna:'tr',vibrato:'≈',nokku:'*',
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 2. TALA DATA
+// 2. TALA DATA (Suladi Sapta + Chapu)
 // ═══════════════════════════════════════════════════════════════════════════
 const TALAS = {
-  'Adi':    [{t:'L',b:4,n:'Laghu'},{t:'O',b:2,n:'Drutam'},{t:'O',b:2,n:'Drutam'}],
-  'Rupaka': [{t:'O',b:2,n:'Drutam'},{t:'L',b:4,n:'Laghu'}],
-  'Triputa':[{t:'L',b:3,n:'Laghu'},{t:'O',b:2,n:'Drutam'},{t:'O',b:2,n:'Drutam'}],
-  'Matya':  [{t:'L',b:4,n:'Laghu'},{t:'O',b:2,n:'Drutam'},{t:'L',b:3,n:'Laghu'}],
-  'Jhampa': [{t:'L',b:7,n:'Laghu'},{t:'U',b:1,n:'Anudruta'},{t:'O',b:2,n:'Drutam'}],
-  'Dhruva': [{t:'L',b:4,n:'Laghu'},{t:'O',b:2,n:'Drutam'},{t:'L',b:4,n:'Laghu'},{t:'L',b:4,n:'Laghu'}],
-  'Ata':    [{t:'L',b:5,n:'Laghu'},{t:'L',b:5,n:'Laghu'},{t:'O',b:2,n:'Drutam'},{t:'O',b:2,n:'Drutam'}],
-  'Eka':    [{t:'L',b:4,n:'Laghu'}],
-};
-
-const RAGA_DATA = {
-  'Hamsadhvani':    'S R G+ P N+',
-  'Shankarabharanam':'S R G+ m P D N+',
-  'Kalyani':        'S R G+ M P D N+',
-  'Bhairavi':       'S r g m P d n',
-  'Mohanam':        'S R G+ P D',
-  'Bilahari':       'S R G+ P D N+',
-  'Todi':           'S r g m P d N+',
-  'Kharaharapriya': 'S R g m P D n',
+  'Adi':         [{t:'L',b:4,n:'Laghu'},{t:'O',b:2,n:'Drutam'},{t:'O',b:2,n:'Drutam'}],
+  'Rupaka':      [{t:'O',b:2,n:'Drutam'},{t:'L',b:4,n:'Laghu'}],
+  'Triputa':     [{t:'L',b:3,n:'Laghu'},{t:'O',b:2,n:'Drutam'},{t:'O',b:2,n:'Drutam'}],
+  'Matya':       [{t:'L',b:4,n:'Laghu'},{t:'O',b:2,n:'Drutam'},{t:'L',b:3,n:'Laghu'}],
+  'Jhampa':      [{t:'L',b:7,n:'Laghu'},{t:'U',b:1,n:'Anudruta'},{t:'O',b:2,n:'Drutam'}],
+  'Dhruva':      [{t:'L',b:4,n:'Laghu'},{t:'O',b:2,n:'Drutam'},{t:'L',b:4,n:'Laghu'},{t:'L',b:4,n:'Laghu'}],
+  'Ata':         [{t:'L',b:5,n:'Laghu'},{t:'L',b:5,n:'Laghu'},{t:'O',b:2,n:'Drutam'},{t:'O',b:2,n:'Drutam'}],
+  'Eka':         [{t:'L',b:4,n:'Laghu'}],
+  'Thisra_Chapu':[{t:'C',b:1,n:'1'},{t:'C',b:2,n:'2'}],
+  'Khanda_Chapu':[{t:'C',b:2,n:'2'},{t:'C',b:3,n:'3'}],
+  'Misra_Chapu': [{t:'C',b:3,n:'3'},{t:'C',b:4,n:'4'}],
 };
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 3. NOTATION PARSER
+// 3. RAGA DATABASE — 72 Melakarta + Key Janya
+//    Format: arohanam/avarohanam in RagaNotate ASCII notation
 // ═══════════════════════════════════════════════════════════════════════════
-const SWARA_CHARS = 'SRGmMPDNrgndN';
+const RAGA_DB = {
+  // ── Popular Janya Ragas ──────────────────────────────────────────────
+  'Hamsadhvani':      { mela:65, aro:'S R G+ P N+',      ava:"N+ P G+ R S",       vadi:'G+',samvadi:'N+',janya:true  },
+  'Mohanam':          { mela:28, aro:'S R G+ P D',        ava:'D P G+ R S',         vadi:'G+',samvadi:'D', janya:true  },
+  'Bilahari':         { mela:29, aro:'S R G+ P D',        ava:"S' N+ D P G+ R S",  vadi:'G+',samvadi:'D', janya:true  },
+  'Dhanyasi':         { mela:8,  aro:'S g m P N+',        ava:'N+ d P m g r S',     vadi:'g', samvadi:'N+',janya:true  },
+  'Abheri':           { mela:22, aro:'S g m P n',         ava:'n D P m g R S',      vadi:'m', samvadi:'S', janya:true  },
+  'Hindolam':         { mela:20, aro:'S g m d n',         ava:'n d m g S',          vadi:'m', samvadi:'g', janya:true  },
+  'Sriranjani':       { mela:22, aro:'S R g m D n',       ava:'n D m g R S',        vadi:'g', samvadi:'n', janya:true  },
+  'Bhairavi':         { mela:20, aro:'S R g m P d N+',    ava:'N+ d P m g R S',     vadi:'d', samvadi:'g', janya:true  },
+  'Todi':             { mela:8,  aro:'S r g m P d N+',    ava:'N+ d P m g r S',     vadi:'g', samvadi:'d', janya:false },
+  'Kapi':             { mela:28, aro:'S R g m P n',       ava:'n D P m G+ R S',     vadi:'g', samvadi:'n', janya:true  },
+  'Malahari':         { mela:15, aro:"S r m P d S'",      ava:"S' d P m r S",       vadi:'m', samvadi:'S', janya:true  },
+  'Punnagavarali':    { mela:8,  aro:'S r g m d N+',      ava:'N+ d m g r S',       vadi:'g', samvadi:'d', janya:true  },
+  // ── Melakarta Ragas (M1 — Suddha Madhyama) ───────────────────────────
+  'Kanakangi':        { mela:1,  aro:'S r g m P d n',     ava:'n d P m g r S',      vadi:'m', samvadi:'S', janya:false },
+  'Hanumatodi':       { mela:8,  aro:'S r g m P d N+',    ava:'N+ d P m g r S',     vadi:'g', samvadi:'d', janya:false },
+  'Mayamalavagowla':  { mela:15, aro:'S r G+ m P d N+',   ava:'N+ d P m G+ r S',    vadi:'G+',samvadi:'N+',janya:false },
+  'Natabhairavi':     { mela:20, aro:'S R g m P d N+',    ava:'N+ d P m g R S',     vadi:'g', samvadi:'D', janya:false },
+  'Jhankaradhvani':   { mela:19, aro:'S R g m P d n',     ava:'n d P m g R S',      vadi:'g', samvadi:'S', janya:false },
+  'Kharaharapriya':   { mela:22, aro:'S R g m P D n',     ava:'n D P m g R S',      vadi:'R', samvadi:'P', janya:false },
+  'Charukesi':        { mela:26, aro:'S R G+ m P d N+',   ava:'N+ d P m G+ R S',    vadi:'G+',samvadi:'d', janya:false },
+  'Harikambhoji':     { mela:28, aro:'S R G+ m P D n',    ava:'n D P m G+ R S',     vadi:'G+',samvadi:'n', janya:false },
+  'Shankarabharanam': { mela:29, aro:'S R G+ m P D N+',   ava:'N+ D P m G+ R S',    vadi:'G+',samvadi:'N+',janya:false },
+  // ── Melakarta Ragas (M2 — Prati Madhyama) ────────────────────────────
+  'Shubhapantuvarali':{ mela:45, aro:'S r g M P d N+',    ava:'N+ d P M g r S',     vadi:'g', samvadi:'N+',janya:false },
+  'Kamavardhini':     { mela:51, aro:'S r G+ M P d N+',   ava:'N+ d P M G+ r S',    vadi:'G+',samvadi:'N+',janya:false },
+  'Shanmukhapriya':   { mela:56, aro:'S R g M P d N+',    ava:'N+ d P M g R S',     vadi:'g', samvadi:'N+',janya:false },
+  'Hemavati':         { mela:58, aro:'S R g M P D n',     ava:'n D P M g R S',      vadi:'R', samvadi:'P', janya:false },
+  'Dharmavati':       { mela:59, aro:'S R g M P D N+',    ava:'N+ D P M g R S',     vadi:'g', samvadi:'N+',janya:false },
+  'Vachaspati':       { mela:64, aro:'S R G+ M P D n',    ava:'n D P M G+ R S',     vadi:'G+',samvadi:'n', janya:false },
+  'Mechakalyani':     { mela:65, aro:'S R G+ M P D N+',   ava:'N+ D P M G+ R S',    vadi:'G+',samvadi:'N+',janya:false },
+  'Senavati':         { mela:7,  aro:'S r g m P d n',     ava:'n d P m g r S',      vadi:'g', samvadi:'S', janya:false },
+};
 
+// Aliases
+RAGA_DB['Kalyani'] = RAGA_DB['Mechakalyani'];
+RAGA_DB['Pantuvarali'] = RAGA_DB['Kamavardhini'];
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 4. NOTATION PARSER (supports ASCII + Unicode dot notation)
+// ═══════════════════════════════════════════════════════════════════════════
 function resolveAlias(sym) {
   return VARIANT_ALIAS[sym] || sym;
 }
 
+// Normalize Unicode dot notation to ASCII
+function normalizeUnicode(text) {
+  const map = {
+    'Ṡ':"S'",'Ṙ':"R'",'Ġ':"G+'",'Ṁ':"M'",'Ṗ':"P'",'Ḋ':"D'",'Ṅ':"N+'",
+    'Ṣ':'.S','Ṛ':'.R','Ṃ':'.M','Ḍ':'.D','Ṇ':'.N',
+    'R₁':'r','R₂':'R','R₃':'g','G₁':'R','G₂':'g','G₃':'G+',
+    'M₁':'m','M₂':'M','D₁':'d','D₂':'D','D₃':'n',
+    'N₁':'D','N₂':'n','N₃':'N+',
+  };
+  let out = text;
+  for (const [uni, ascii] of Object.entries(map)) out = out.replaceAll(uni, ascii);
+  return out;
+}
+
 function tokenize(text) {
-  // Strip {meta} blocks and comments
-  text = text.replace(/\{[^}]*\}/g, '').replace(/\/\/.*$/gm, '');
-  const re = /(\|\||\||,|_|-|\.?(?:[SRGmMPDN][+]?[123]?|[rgnd])['][~\/\\^vwtrvib]*[;:]*)/g;
+  text = normalizeUnicode(text);
+  text = text.replace(/\{[^}]*\}/g,'').replace(/\/\/.*$/gm,'');
+  const re = /(\|\||\||,|_|-|\.?(?:[SRGmMPDN][+]?[123]?|[rgnd])['][~\/\\^vw*][;:]*|\.?(?:[SRGmMPDN][+]?[123]?|[rgnd])['][;:]*|\.?(?:[SRGmMPDN][+]?[123]?|[rgnd])[~\/\\^vw*][;:]*|\.?(?:[SRGmMPDN][+]?[123]?|[rgnd])[;:]*)/g;
   const out = [];
   let m;
-  while ((m = re.exec(text)) !== null) out.push(m[1].trim());
-  return out.filter(t => t.length > 0);
+  while ((m = re.exec(text)) !== null) {
+    const t = m[1].trim();
+    if (t) out.push(t);
+  }
+  return out;
 }
 
 function parseSwaraToken(tok) {
   let rest = tok;
   let octave = 'madhya';
-
-  // Mandra prefix
   if (rest[0] === '.') { octave = 'mandra'; rest = rest.slice(1); }
-
-  // Extract symbol (2-char first: G+, N+, then 2-char variants R1..N3, then 1-char)
   let sym = '';
-  if (/^[GN]\+/.test(rest))              { sym = rest.slice(0,2); rest = rest.slice(2); }
-  else if (/^[RGMDNrgnd][123]/.test(rest)){ sym = rest.slice(0,2); rest = rest.slice(2); }
-  else                                    { sym = rest[0]; rest = rest.slice(1); }
-
-  // Tara suffix
+  if (/^[GN]\+/.test(rest))               { sym = rest.slice(0,2); rest = rest.slice(2); }
+  else if (/^[RGMDNrgnd][123]/.test(rest)) { sym = rest.slice(0,2); rest = rest.slice(2); }
+  else                                     { sym = rest[0]; rest = rest.slice(1); }
   if (rest[0] === "'") { octave = 'tara'; rest = rest.slice(1); }
-
   const canonical = resolveAlias(sym);
-
-  // Gamaka
   let gamaka = null;
-  if      (rest.startsWith('vib')) { gamaka='vibrato';     rest=rest.slice(3); }
-  else if (rest.startsWith('tr'))  { gamaka='tribhinna';   rest=rest.slice(2); }
-  else if (rest[0]==='~')          { gamaka='kampita';     rest=rest.slice(1); }
-  else if (rest[0]==='/')          { gamaka='jaru_up';     rest=rest.slice(1); }
-  else if (rest[0]==='\\')         { gamaka='jaru_down';   rest=rest.slice(1); }
-  else if (rest[0]==='^')          { gamaka='sphurita';    rest=rest.slice(1); }
-  else if (rest[0]==='w')          { gamaka='andola';      rest=rest.slice(1); }
-  else if (rest[0]==='v')          { gamaka='pratyaghata'; rest=rest.slice(1); }
-
-  // Duration
+  if      (rest.startsWith('vib')) { gamaka='vibrato';    rest=rest.slice(3); }
+  else if (rest.startsWith('tr'))  { gamaka='tribhinna';  rest=rest.slice(2); }
+  else if (rest[0]==='~')          { gamaka='kampita';    rest=rest.slice(1); }
+  else if (rest[0]==='/')          { gamaka='jaru_up';    rest=rest.slice(1); }
+  else if (rest[0]==='\\')         { gamaka='jaru_down';  rest=rest.slice(1); }
+  else if (rest[0]==='^')          { gamaka='sphurita';   rest=rest.slice(1); }
+  else if (rest[0]==='w')          { gamaka='andola';     rest=rest.slice(1); }
+  else if (rest[0]==='v')          { gamaka='pratyaghata';rest=rest.slice(1); }
+  else if (rest[0]==='*')          { gamaka='nokku';      rest=rest.slice(1); }
   let dur = 1;
   while (rest[0]===';') { dur *= 2; rest=rest.slice(1); }
   while (rest[0]===':') { dur /= 2; rest=rest.slice(1); }
-
   return { type:'swara', symbol:canonical, raw:sym, octave, gamaka, dur };
 }
 
@@ -444,7 +676,6 @@ function parse(text) {
   const tokens = tokenize(text);
   const nodes = [];
   let barPos = 0;
-
   for (const tok of tokens) {
     if (tok === '||') {
       nodes.push({ type:'sectionEnd' }); barPos = 0;
@@ -459,219 +690,212 @@ function parse(text) {
         const n = parseSwaraToken(tok);
         n.barPos = barPos++;
         nodes.push(n);
-      } catch(e) { /* skip bad token */ }
+      } catch(e) { /* skip */ }
     }
   }
   return nodes;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 3b. RAGA VALIDATION HELPERS
+// 5. RAGA VALIDATION
 // ═══════════════════════════════════════════════════════════════════════════
-
-/** Return the set of canonical swara symbols valid in the currently selected raga. */
 function getActiveRagaSwaras() {
-  const ragaName = document.getElementById('raga-sel')
-    ? document.getElementById('raga-sel').value
-    : 'Hamsadhvani';
-  const scaleStr = RAGA_DATA[ragaName] || '';
-  // Always include Sa and Pa (achala)
-  const set = new Set(['S', 'P']);
-  scaleStr.split(/\s+/).forEach(s => { if (s) set.add(resolveAlias(s)); });
+  const sel = document.getElementById('raga-sel');
+  const ragaName = sel ? sel.value : 'Hamsadhvani';
+  const raga = RAGA_DB[ragaName];
+  if (!raga) return new Set(['S','P']);
+  const set = new Set(['S','P']);
+  const parseScale = str => str.split(/\s+/).forEach(s => {
+    if (!s || s === '|' || s === '||' || s === "S'" || s === ".S") return;
+    const clean = s.replace(/[~\/\\^vw*;:',.]/g,'').replace(/^\./, '');
+    set.add(resolveAlias(clean));
+  });
+  parseScale(raga.aro || '');
+  parseScale(raga.ava || '');
   return set;
 }
 
-/** Return a Set of swara node indices that are NOT in the active raga. */
 function getRagaViolations(nodes) {
   const valid = getActiveRagaSwaras();
   const violations = new Set();
-  nodes.forEach((n, i) => {
-    if (n.type === 'swara' && !valid.has(n.symbol)) violations.add(i);
-  });
+  nodes.forEach((n,i) => { if (n.type==='swara' && !valid.has(n.symbol)) violations.add(i); });
   return violations;
 }
 
-/** Update the raga info pill bar and warn counter. */
 function updateRagaInfoBar(violations = new Set()) {
-  const ragaName = document.getElementById('raga-sel').value;
-  const scaleStr = (RAGA_DATA[ragaName] || '').split(/\s+/).filter(Boolean);
+  const sel = document.getElementById('raga-sel');
+  if (!sel) return;
+  const ragaName = sel.value;
+  const raga = RAGA_DB[ragaName];
   const container = document.getElementById('raga-swara-pills');
   if (!container) return;
   container.innerHTML = '';
-  scaleStr.forEach(sym => {
-    const canonical = resolveAlias(sym);
-    const sw = SWARA_DATA[canonical];
-    const pill = document.createElement('span');
-    pill.className = 'raga-pill ' + (sw && sw.achala ? 'achala' : 'chala');
-    pill.textContent = sym;
-    pill.title = sw ? sw.ph : sym;
-    container.appendChild(pill);
-  });
+  if (raga) {
+    const swaras = (raga.aro || '').split(/\s+/).filter(s => s && s!=='|' && s!=='||');
+    swaras.forEach(sym => {
+      const cleanSym = sym.replace(/[~\/\\^vw*;:',.]/g,'').replace(/^\./, '');
+      const canonical = resolveAlias(cleanSym);
+      const sw = SWARA_DATA[canonical];
+      const pill = document.createElement('span');
+      pill.className = 'raga-pill ' + (sw && sw.achala ? 'achala' : 'chala');
+      pill.textContent = sym;
+      pill.title = sw ? sw.full : sym;
+      container.appendChild(pill);
+    });
+    const detail = document.getElementById('raga-detail');
+    if (detail && raga) {
+      detail.textContent = raga.janya
+        ? ` · Janya of mela ${raga.mela} · Vadi: ${raga.vadi}`
+        : ` · Melakarta ${raga.mela} · Vadi: ${raga.vadi}`;
+    }
+  }
   const warnEl = document.getElementById('notate-warn');
   if (warnEl) {
     warnEl.textContent = violations.size > 0
-      ? `⚠ ${violations.size} out-of-raga note${violations.size > 1 ? 's' : ''}`
-      : '';
+      ? `⚠ ${violations.size} out-of-raga note${violations.size>1?'s':''}` : '';
   }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 4. SVG RENDERER
+// 6. SVG RENDERER (Unicode dot-above/below display)
 // ═══════════════════════════════════════════════════════════════════════════
-const GAMAKA_SYM = {
-  kampita:'~', jaru_up:'/', jaru_down:'\\', sphurita:'^',
-  andola:'w', pratyaghata:'v', tribhinna:'tr', vibrato:'≈',
-};
-const OCT_COLORS = { mandra:'#58a6ff', madhya:'inherit', tara:'#ffa657' };
+function getSwaraDisplaySymbol(node) {
+  const sw = SWARA_DATA[node.symbol];
+  if (!sw) return node.symbol;
+  if (node.octave === 'tara')   return sw.uni_t || (node.symbol + "'");
+  if (node.octave === 'mandra') return sw.uni_l || ('.' + node.symbol);
+  return sw.uni_m || node.symbol;
+}
 
 function renderSVG(nodes, opts={}, violations=new Set()) {
-  const isDark  = document.documentElement.dataset.theme !== 'light';
-  const COLORS  = {
-    bg:       isDark ? '#0d1117' : '#ffffff',
-    surface:  isDark ? '#161b22' : '#f6f8fa',
-    border:   isDark ? '#30363d' : '#d0d7de',
-    text:     isDark ? '#e6edf3' : '#1f2328',
-    muted:    isDark ? '#8b949e' : '#656d76',
-    bar:      isDark ? '#58a6ff' : '#0969da',
-    rest:     isDark ? '#21262d' : '#eaeef2',
+  const isDark = document.documentElement.dataset.theme !== 'light';
+  const C = {
+    bg:     isDark ? '#0d1117' : '#ffffff',
+    surf:   isDark ? '#161b22' : '#f6f8fa',
+    border: isDark ? '#30363d' : '#d0d7de',
+    text:   isDark ? '#e6edf3' : '#1f2328',
+    muted:  isDark ? '#8b949e' : '#656d76',
+    bar:    isDark ? '#58a6ff' : '#0969da',
+    rest:   isDark ? '#21262d' : '#eaeef2',
   };
-
-  const CW = opts.cellWidth  || 68;
+  const CW = opts.cellWidth  || 66;
   const CH = opts.cellHeight || 54;
   const PAD = 12;
   const MAX_W = opts.maxWidth || 900;
-  const CELLS_PER_ROW = Math.floor((MAX_W - PAD*2) / CW);
-  const LYRIC_H = opts.showLyrics ? 18 : 0;
-  const ROW_H  = CH + LYRIC_H + 8;
+  const CPR = Math.floor((MAX_W - PAD*2) / CW);
+  const LYR_H = opts.showLyrics ? 18 : 0;
+  const ROW_H = CH + LYR_H + 8;
 
   // Build rows
-  let rows = [[]]; let rowX = 0;
+  let rows = [[]], rowX = 0;
   for (const n of nodes) {
     if (n.type === 'sectionEnd') {
-      rows[rows.length-1].push(n);
-      rows.push([]); rowX = 0;
+      rows[rows.length-1].push(n); rows.push([]); rowX = 0;
     } else if (n.type === 'bar') {
       rows[rows.length-1].push(n);
     } else {
-      const cellSpan = n.type === 'swara' ? Math.max(1, Math.round(n.dur)) : 1;
-      if (rowX + cellSpan > CELLS_PER_ROW) { rows.push([]); rowX = 0; }
+      const span = n.type==='swara' ? Math.max(1, Math.round(n.dur)) : 1;
+      if (rowX + span > CPR) { rows.push([]); rowX = 0; }
       rows[rows.length-1].push(n);
-      rowX += cellSpan;
+      rowX += span;
     }
   }
 
-  const totalRows = rows.filter(r => r.length > 0).length;
-  const svgH = totalRows * ROW_H + PAD * 2;
+  const validRows = rows.filter(r => r.length > 0);
+  const svgH = validRows.length * ROW_H + PAD*2;
   const svgW = MAX_W;
 
   let svg = `<svg xmlns="http://www.w3.org/2000/svg" width="${svgW}" height="${svgH}"
-    style="background:${COLORS.bg};border-radius:8px;font-family:'Segoe UI',Arial,sans-serif">`;
-  svg += `<rect width="${svgW}" height="${svgH}" rx="8" fill="${COLORS.bg}"/>`;
+    style="background:${C.bg};border-radius:8px;font-family:'Segoe UI',Arial,sans-serif">`;
+  svg += `<rect width="${svgW}" height="${svgH}" rx="8" fill="${C.bg}"/>`;
 
-  rows.filter(r => r.length > 0).forEach((row, ri) => {
+  validRows.forEach((row, ri) => {
     let x = PAD;
     const y = PAD + ri * ROW_H;
-
     for (const n of row) {
       if (n.type === 'bar') {
         svg += `<line x1="${x+1}" y1="${y+4}" x2="${x+1}" y2="${y+CH-4}"
-          stroke="${COLORS.bar}" stroke-width="2" stroke-linecap="round"/>`;
+          stroke="${C.bar}" stroke-width="2" stroke-linecap="round"/>`;
         x += 8;
       } else if (n.type === 'sectionEnd') {
-        svg += `<line x1="${x+1}" y1="${y+4}" x2="${x+1}" y2="${y+CH-4}"
-          stroke="${COLORS.bar}" stroke-width="2"/>`;
-        svg += `<line x1="${x+4}" y1="${y+4}" x2="${x+4}" y2="${y+CH-4}"
-          stroke="${COLORS.bar}" stroke-width="2"/>`;
-        x += 10;
+        svg += `<line x1="${x+1}" y1="${y+4}" x2="${x+1}" y2="${y+CH-4}" stroke="${C.bar}" stroke-width="2"/>`;
+        svg += `<line x1="${x+5}" y1="${y+4}" x2="${x+5}" y2="${y+CH-4}" stroke="${C.bar}" stroke-width="2"/>`;
+        x += 12;
       } else if (n.type === 'halfBeat') {
-        svg += `<text x="${x+3}" y="${y+CH/2+5}" fill="${COLORS.muted}"
-          font-size="14" font-weight="bold">,</text>`;
+        svg += `<text x="${x+3}" y="${y+CH/2+5}" fill="${C.muted}" font-size="14" font-weight="bold">,</text>`;
         x += 10;
       } else if (n.type === 'rest') {
-        svg += `<rect x="${x}" y="${y}" width="${CW-2}" height="${CH}"
-          rx="5" fill="${COLORS.rest}" stroke="${COLORS.border}" stroke-width="1"/>`;
-        svg += `<text x="${x+CW/2-1}" y="${y+CH/2+5}" fill="${COLORS.muted}"
+        svg += `<rect x="${x}" y="${y}" width="${CW-2}" height="${CH}" rx="5"
+          fill="${C.rest}" stroke="${C.border}" stroke-width="1"/>`;
+        svg += `<text x="${x+CW/2-1}" y="${y+CH/2+5}" fill="${C.muted}"
           font-size="18" text-anchor="middle">–</text>`;
         x += CW;
       } else if (n.type === 'swara') {
         const sw = SWARA_DATA[n.symbol];
         if (!sw) { x += CW; continue; }
-
         const nodeIdx = nodes.indexOf(n);
-        const isViolation = violations.has(nodeIdx);
-        const grpCol = isViolation ? '#f85149' : (GRP_COLOR[sw.grp] || COLORS.text);
-        const cellW  = CW * Math.max(0.5, n.dur) - 2;
-        const isAch  = sw.achala;
+        const isVio = violations.has(nodeIdx);
+        const grpCol = isVio ? '#f85149' : (GRP_COLOR[sw.grp] || C.text);
+        const cellW = CW * Math.max(0.5, n.dur) - 2;
+        const isAch = sw.achala;
 
-        // Cell background — red-tinted if out of raga
-        const bgCol = isViolation
+        // Background
+        const bgCol = isVio
           ? (isDark ? '#2a0a0a' : '#fff0f0')
-          : isAch
-            ? (isDark ? '#1a1600' : '#fff8e1')
-            : (isDark ? '#0c1a0c' : '#f0f9f0');
-        const strokeW = isViolation ? 2 : (isAch ? 2 : 1);
-        svg += `<rect x="${x}" y="${y}" width="${cellW}" height="${CH}"
-          rx="6" fill="${bgCol}" stroke="${grpCol}${isViolation?'':'44'}" stroke-width="${strokeW}"/>`;
-        // Violation marker — small warning triangle
-        if (isViolation) {
-          svg += `<text x="${x+6}" y="${y+13}" font-size="9" fill="#f85149">⚠</text>`;
-        }
+          : isAch ? (isDark ? '#1a1600' : '#fff8e1')
+                  : (isDark ? '#0c1a0c' : '#f0f9f0');
+        svg += `<rect x="${x}" y="${y}" width="${cellW}" height="${CH}" rx="6"
+          fill="${bgCol}" stroke="${grpCol}${isVio?'':'44'}" stroke-width="${isVio?2:isAch?2:1}"/>`;
 
-        // Octave dots
-        if (n.octave === 'tara') {
-          svg += `<circle cx="${x+cellW/2}" cy="${y+7}" r="3" fill="${OCT_COLORS.tara}"/>`;
-        } else if (n.octave === 'mandra') {
-          svg += `<circle cx="${x+cellW/2}" cy="${y+CH-7}" r="3" fill="${OCT_COLORS.mandra}"/>`;
-        }
+        if (isVio) svg += `<text x="${x+5}" y="${y+12}" font-size="8" fill="#f85149">⚠</text>`;
+
+        // Main symbol (Unicode display)
+        const dispSym = getSwaraDisplaySymbol(n);
+        svg += `<text x="${x+cellW/2}" y="${y+CH/2+7}" fill="${grpCol}"
+          font-size="17" font-weight="700" text-anchor="middle"
+          font-family="'Segoe UI',Arial,sans-serif">${dispSym}</text>`;
+
+        // Phonetic below
+        svg += `<text x="${x+cellW/2}" y="${y+CH-7}" fill="${C.muted}"
+          font-size="9" text-anchor="middle">${sw.ph}</text>`;
 
         // Gamaka indicator
         if (n.gamaka && GAMAKA_SYM[n.gamaka]) {
-          svg += `<text x="${x+cellW-5}" y="${y+14}" fill="#4ec9b0"
-            font-size="10" text-anchor="end" font-family="monospace"
-            >${GAMAKA_SYM[n.gamaka]}</text>`;
+          svg += `<text x="${x+cellW-4}" y="${y+14}" fill="#4ec9b0"
+            font-size="10" text-anchor="end" font-family="monospace">${GAMAKA_SYM[n.gamaka]}</text>`;
         }
 
-        // Main swara symbol
-        svg += `<text x="${x+cellW/2}" y="${y+CH/2+7}" fill="${grpCol}"
-          font-size="18" font-weight="700" text-anchor="middle"
-          font-family="'Segoe UI',Arial,sans-serif">${n.symbol==='G+'?'G⁺':n.symbol==='N+'?'N⁺':n.symbol}</text>`;
-
-        // Phonetic below symbol
-        svg += `<text x="${x+cellW/2}" y="${y+CH-7}" fill="${COLORS.muted}"
-          font-size="9" text-anchor="middle">${sw.ph}</text>`;
+        // Duration indicator (top-left if non-1)
+        if (n.dur !== 1) {
+          svg += `<text x="${x+5}" y="${y+13}" fill="${C.muted}"
+            font-size="8" font-family="monospace">${n.dur>1 ? n.dur+'×' : '½'}</text>`;
+        }
 
         // Lyric if present
         if (opts.showLyrics && n.lyric) {
-          svg += `<text x="${x+cellW/2}" y="${y+CH+LYRIC_H-2}" fill="${COLORS.text}"
+          svg += `<text x="${x+cellW/2}" y="${y+CH+LYR_H-2}" fill="${C.text}"
             font-size="11" text-anchor="middle">${n.lyric}</text>`;
         }
-
         x += CW * Math.max(0.5, n.dur);
       }
     }
   });
-
   svg += '</svg>';
   return svg;
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 5. AUDIO ENGINE
+// 7. AUDIO ENGINE
 // ═══════════════════════════════════════════════════════════════════════════
 class AudioEngine {
   constructor() {
-    this.ctx = null;
-    this.masterGain = null;
-    this.droneNodes = [];
-    this.instrument = 'mridangam';
-    this.volume = 0.7;
-    this.droneActive = { sa: false, pa: false, sa2: false };
-    this._droneAnim = null;
+    this.ctx = null; this.masterGain = null; this.droneNodes = [];
+    this.instrument = 'mridangam'; this.volume = 0.7;
+    this.droneActive = {sa:false,pa:false,sa2:false}; this._droneAnim = null;
   }
-
   _ensureCtx() {
     if (!this.ctx) {
-      this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      this.ctx = new (window.AudioContext||window.webkitAudioContext)();
       this.masterGain = this.ctx.createGain();
       this.masterGain.gain.value = this.volume;
       this.masterGain.connect(this.ctx.destination);
@@ -679,640 +903,719 @@ class AudioEngine {
     if (this.ctx.state === 'suspended') this.ctx.resume();
     return this.ctx;
   }
-
   setVolume(v) {
     this.volume = v;
     if (this.masterGain) this.masterGain.gain.setTargetAtTime(v, this.ctx.currentTime, 0.05);
   }
-
-  // ── Mridangam synthesis ────────────────────────────────────────────────
   _mridangamThom(t) {
-    // Deep bass hit (left hand — thom)
     const ctx = this.ctx;
-    const g = ctx.createGain();
-    const osc = ctx.createOscillator();
-    const osc2 = ctx.createOscillator();
-    osc.type = 'sine'; osc.frequency.setValueAtTime(90, t);
-    osc.frequency.exponentialRampToValueAtTime(40, t + 0.25);
-    osc2.type = 'sine'; osc2.frequency.setValueAtTime(180, t);
-    osc2.frequency.exponentialRampToValueAtTime(80, t + 0.15);
-    g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(0.7, t + 0.005);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.55);
-    [osc, osc2].forEach(o => { o.connect(g); o.start(t); o.stop(t + 0.6); });
-    g.connect(this.masterGain);
+    const g = ctx.createGain(), osc = ctx.createOscillator(), osc2 = ctx.createOscillator();
+    osc.type='sine'; osc.frequency.setValueAtTime(90,t); osc.frequency.exponentialRampToValueAtTime(40,t+.25);
+    osc2.type='sine'; osc2.frequency.setValueAtTime(180,t); osc2.frequency.exponentialRampToValueAtTime(80,t+.15);
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.7,t+.005); g.gain.exponentialRampToValueAtTime(.001,t+.55);
+    [osc,osc2].forEach(o=>{o.connect(g);o.start(t);o.stop(t+.6);}); g.connect(this.masterGain);
   }
-
   _mridangamTa(t, strong=false) {
-    // High pitched right-hand hit (ta / dhi)
-    const ctx = this.ctx;
-    const bpf = ctx.createBiquadFilter();
-    bpf.type = 'bandpass';
-    bpf.frequency.value = strong ? 900 : 650;
-    bpf.Q.value = 3;
-    const bufSz = ctx.sampleRate * 0.08;
-    const buf = ctx.createBuffer(1, bufSz, ctx.sampleRate);
-    const data = buf.getChannelData(0);
-    for (let i = 0; i < bufSz; i++) data[i] = (Math.random()*2-1) * Math.exp(-i/(bufSz*0.3));
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(strong ? 0.6 : 0.35, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.18);
-    src.connect(bpf); bpf.connect(g); g.connect(this.masterGain);
-    src.start(t); src.stop(t + 0.2);
+    const ctx=this.ctx, bpf=ctx.createBiquadFilter();
+    bpf.type='bandpass'; bpf.frequency.value=strong?900:650; bpf.Q.value=3;
+    const bufSz=ctx.sampleRate*.08, buf=ctx.createBuffer(1,bufSz,ctx.sampleRate);
+    const data=buf.getChannelData(0);
+    for(let i=0;i<bufSz;i++) data[i]=(Math.random()*2-1)*Math.exp(-i/(bufSz*.3));
+    const src=ctx.createBufferSource(); src.buffer=buf;
+    const g=ctx.createGain(); g.gain.setValueAtTime(strong?.6:.35,t); g.gain.exponentialRampToValueAtTime(.001,t+.18);
+    src.connect(bpf); bpf.connect(g); g.connect(this.masterGain); src.start(t); src.stop(t+.2);
   }
-
   _mridangamKi(t) {
-    // Short crisp high click (ki / tat)
-    const ctx = this.ctx;
-    const osc = ctx.createOscillator();
-    osc.type = 'square'; osc.frequency.value = 1200;
-    const g = ctx.createGain();
-    g.gain.setValueAtTime(0.3, t);
-    g.gain.exponentialRampToValueAtTime(0.001, t + 0.05);
-    const hpf = ctx.createBiquadFilter();
-    hpf.type = 'highpass'; hpf.frequency.value = 800;
-    osc.connect(hpf); hpf.connect(g); g.connect(this.masterGain);
-    osc.start(t); osc.stop(t + 0.06);
+    const ctx=this.ctx, osc=ctx.createOscillator();
+    osc.type='square'; osc.frequency.value=1200;
+    const g=ctx.createGain(), hpf=ctx.createBiquadFilter();
+    hpf.type='highpass'; hpf.frequency.value=800;
+    g.gain.setValueAtTime(.3,t); g.gain.exponentialRampToValueAtTime(.001,t+.05);
+    osc.connect(hpf); hpf.connect(g); g.connect(this.masterGain); osc.start(t); osc.stop(t+.06);
   }
-
-  // ── Harmonium synthesis ────────────────────────────────────────────────
-  _harmoniumNote(t, freq, dur=0.35) {
-    const ctx = this.ctx;
-    const oscs = [1, 2, 3, 4].map(h => {
-      const o = ctx.createOscillator();
-      o.type = h === 1 ? 'sawtooth' : 'sine';
-      o.frequency.value = freq * h;
-      return o;
-    });
-    const g = ctx.createGain();
-    const filt = ctx.createBiquadFilter();
-    filt.type = 'lowpass'; filt.frequency.value = freq * 5; filt.Q.value = 0.8;
-    oscs.forEach((o, i) => {
-      const og = ctx.createGain(); og.gain.value = [0.4, 0.25, 0.12, 0.06][i];
-      o.connect(og); og.connect(filt);
-    });
+  _harmoniumNote(t, freq, dur=.35) {
+    const ctx=this.ctx;
+    const oscs=[1,2,3,4].map(h=>{ const o=ctx.createOscillator(); o.type=h===1?'sawtooth':'sine'; o.frequency.value=freq*h; return o; });
+    const g=ctx.createGain(), filt=ctx.createBiquadFilter();
+    filt.type='lowpass'; filt.frequency.value=freq*5; filt.Q.value=.8;
+    oscs.forEach((o,i)=>{ const og=ctx.createGain(); og.gain.value=[.4,.25,.12,.06][i]; o.connect(og); og.connect(filt); });
     filt.connect(g); g.connect(this.masterGain);
-    g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(0.5, t + 0.03);
-    g.gain.setValueAtTime(0.5, t + dur * 0.6);
-    g.gain.exponentialRampToValueAtTime(0.001, t + dur);
-    oscs.forEach(o => { o.start(t); o.stop(t + dur + 0.05); });
+    g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(.5,t+.03);
+    g.gain.setValueAtTime(.5,t+dur*.6); g.gain.exponentialRampToValueAtTime(.001,t+dur);
+    oscs.forEach(o=>{ o.start(t); o.stop(t+dur+.05); });
   }
-
-  // ── Bell / Gong synthesis ───────────────────────────────────────────────
   _bellNote(t, freq, strong=false) {
-    const ctx = this.ctx;
-    const freqs = [freq, freq*2.756, freq*5.404, freq*8.933];
-    const decays = [1.2, 0.8, 0.5, 0.3];
-    freqs.forEach((f, i) => {
-      const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f;
-      const g = ctx.createGain();
-      g.gain.setValueAtTime(strong ? 0.25 : 0.12, t);
-      g.gain.exponentialRampToValueAtTime(0.001, t + decays[i]);
-      o.connect(g); g.connect(this.masterGain);
-      o.start(t); o.stop(t + decays[i] + 0.05);
+    const ctx=this.ctx;
+    [freq, freq*2.756, freq*5.404, freq*8.933].forEach((f,i)=>{
+      const o=ctx.createOscillator(); o.type='sine'; o.frequency.value=f;
+      const g=ctx.createGain(), dec=[1.2,.8,.5,.3][i];
+      g.gain.setValueAtTime(strong?.25:.12,t); g.gain.exponentialRampToValueAtTime(.001,t+dec);
+      o.connect(g); g.connect(this.masterGain); o.start(t); o.stop(t+dec+.05);
     });
   }
+  // ── Swara synthesis (bansuri-like) with gamaka ─────────────────────────
+  playSwara(t, freq, dur, gamaka=null) {
+    this._ensureCtx();
+    const ctx=this.ctx;
+    const osc=ctx.createOscillator(), osc2=ctx.createOscillator();
+    const g=ctx.createGain(), filt=ctx.createBiquadFilter();
+    osc.type='sine'; osc2.type='sine';
+    filt.type='lowpass'; filt.frequency.value=freq*8; filt.Q.value=0.5;
 
-  // ── Play a single beat ─────────────────────────────────────────────────
+    // Gamaka pitch contours
+    const safeFreq = f => Math.max(20, Math.min(20000, f));
+    if (gamaka === 'kampita') {
+      // Vibrato: sinusoidal pitch modulation
+      osc.frequency.setValueAtTime(safeFreq(freq), t);
+      for (let i=0; i<dur*8; i++) {
+        const tt = t + i*(dur/8);
+        const bend = freq * 0.018 * Math.sin(i * Math.PI);
+        osc.frequency.setValueAtTime(safeFreq(freq + bend), tt);
+      }
+    } else if (gamaka === 'jaru_up') {
+      osc.frequency.setValueAtTime(safeFreq(freq * 0.94), t);
+      osc.frequency.linearRampToValueAtTime(safeFreq(freq), t + dur * 0.4);
+    } else if (gamaka === 'jaru_down') {
+      osc.frequency.setValueAtTime(safeFreq(freq * 1.06), t);
+      osc.frequency.linearRampToValueAtTime(safeFreq(freq), t + dur * 0.35);
+    } else if (gamaka === 'sphurita') {
+      osc.frequency.setValueAtTime(safeFreq(freq * 1.04), t);
+      osc.frequency.linearRampToValueAtTime(safeFreq(freq), t + Math.min(0.05, dur * 0.2));
+    } else if (gamaka === 'andola') {
+      osc.frequency.setValueAtTime(safeFreq(freq), t);
+      const rate = 3.5, amp = freq * 0.03;
+      for (let i=0; i<dur*rate*2; i++) {
+        osc.frequency.setValueAtTime(safeFreq(freq + amp * Math.sin(i/rate * Math.PI)), t + i/rate/2);
+      }
+    } else {
+      osc.frequency.setValueAtTime(safeFreq(freq), t);
+    }
+
+    osc2.frequency.setValueAtTime(safeFreq(freq * 1.002), t); // slight detune for warmth
+    const og1=ctx.createGain(); og1.gain.value=0.6;
+    const og2=ctx.createGain(); og2.gain.value=0.15;
+    osc.connect(og1); og1.connect(filt);
+    osc2.connect(og2); og2.connect(filt);
+    filt.connect(g); g.connect(this.masterGain);
+
+    const att = Math.min(0.04, dur * 0.1);
+    const rel = Math.min(0.1, dur * 0.15);
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(0.55, t + att);
+    g.gain.setValueAtTime(0.55, t + dur - rel);
+    g.gain.linearRampToValueAtTime(0, t + dur);
+    osc.start(t); osc.stop(t + dur + 0.05);
+    osc2.start(t); osc2.stop(t + dur + 0.05);
+  }
+
   playBeat(beatType, saHz, time) {
-    // beatType: 'sam' | 'laghu_start' | 'laghu_mid' | 'drutam_wave' | 'anudruta'
     this._ensureCtx();
     const t = time || this.ctx.currentTime + 0.01;
-
     if (this.instrument === 'mridangam') {
-      if (beatType === 'sam')         { this._mridangamThom(t); this._mridangamTa(t, true); }
-      else if (beatType === 'laghu_start') { this._mridangamTa(t, true); }
-      else if (beatType === 'laghu_mid')   { this._mridangamTa(t, false); }
-      else if (beatType === 'drutam_wave') { this._mridangamKi(t); }
-      else if (beatType === 'anudruta')    { this._mridangamTa(t, false); }
-
+      if (beatType==='sam')          { this._mridangamThom(t); this._mridangamTa(t,true); }
+      else if (beatType==='laghu_start') this._mridangamTa(t,true);
+      else if (beatType==='laghu_mid')   this._mridangamTa(t,false);
+      else if (beatType==='drutam_wave') this._mridangamKi(t);
+      else if (beatType==='anudruta')    this._mridangamTa(t,false);
     } else if (this.instrument === 'harmonium') {
-      const freq = saHz || 261.63;
-      if (beatType === 'sam')              this._harmoniumNote(t, freq, 0.5);
-      else if (beatType === 'laghu_start') this._harmoniumNote(t, freq * 3/2, 0.35);
-      else if (beatType === 'laghu_mid')   this._harmoniumNote(t, freq * 5/4, 0.25);
-      else if (beatType === 'drutam_wave') this._harmoniumNote(t, freq * 4/3, 0.2);
-      else if (beatType === 'anudruta')    this._harmoniumNote(t, freq * 9/8, 0.2);
-
+      const f=saHz||261.63;
+      if (beatType==='sam')          this._harmoniumNote(t,f,.5);
+      else if (beatType==='laghu_start') this._harmoniumNote(t,f*3/2,.35);
+      else if (beatType==='laghu_mid')   this._harmoniumNote(t,f*5/4,.25);
+      else if (beatType==='drutam_wave') this._harmoniumNote(t,f*4/3,.2);
+      else if (beatType==='anudruta')    this._harmoniumNote(t,f*9/8,.2);
     } else if (this.instrument === 'bell') {
-      const freq = saHz ? saHz * 2 : 523;
-      const strong = (beatType === 'sam' || beatType === 'laghu_start');
-      this._bellNote(t, strong ? freq : freq * 1.5, strong);
+      const f=saHz?saHz*2:523, strong=(beatType==='sam'||beatType==='laghu_start');
+      this._bellNote(t, strong?f:f*1.5, strong);
     }
-    // 'none' → silent
   }
 
-  // ── Shruti Drone ───────────────────────────────────────────────────────
   startDroneNote(noteKey, saHz) {
-    this._ensureCtx();
-    this.stopDroneNote(noteKey);
-    const ctx = this.ctx;
-    const freqMap = { sa: saHz * 0.5, pa: saHz * 0.75, sa2: saHz };
-    const baseFreq = freqMap[noteKey] || saHz;
-
-    const nodes = [];
-    // 4 slightly detuned oscillators for richness
-    const detunes = [-6, -2, 2, 6];
-    const gainVals = [0.18, 0.25, 0.25, 0.18];
-
-    const masterG = ctx.createGain();
-    masterG.gain.setValueAtTime(0, ctx.currentTime);
-    masterG.gain.linearRampToValueAtTime(0.7, ctx.currentTime + 1.5);
-
-    const filt = ctx.createBiquadFilter();
-    filt.type = 'lowpass'; filt.frequency.value = baseFreq * 6; filt.Q.value = 0.5;
-
-    detunes.forEach((det, i) => {
-      const o = ctx.createOscillator();
-      o.type = 'sawtooth';
-      o.frequency.value = baseFreq;
-      o.detune.value = det;
-      const og = ctx.createGain(); og.gain.value = gainVals[i];
-      o.connect(og); og.connect(filt);
-      o.start();
-      nodes.push(o, og);
+    this._ensureCtx(); this.stopDroneNote(noteKey);
+    const ctx=this.ctx;
+    const freqMap={sa:saHz*.5,pa:saHz*.75,sa2:saHz};
+    const baseFreq=freqMap[noteKey]||saHz;
+    const nodes=[];
+    const masterG=ctx.createGain();
+    masterG.gain.setValueAtTime(0,ctx.currentTime);
+    masterG.gain.linearRampToValueAtTime(.7,ctx.currentTime+1.5);
+    const filt=ctx.createBiquadFilter(); filt.type='lowpass'; filt.frequency.value=baseFreq*6; filt.Q.value=.5;
+    [-6,-2,2,6].forEach((det,i)=>{
+      const o=ctx.createOscillator(); o.type='sawtooth'; o.frequency.value=baseFreq; o.detune.value=det;
+      const og=ctx.createGain(); og.gain.value=[.18,.25,.25,.18][i];
+      o.connect(og); og.connect(filt); o.start(); nodes.push(o,og);
     });
-
-    // Add a fundamental sine for warmth
-    const sinOsc = ctx.createOscillator();
-    sinOsc.type = 'sine'; sinOsc.frequency.value = baseFreq;
-    const sinG = ctx.createGain(); sinG.gain.value = 0.3;
-    sinOsc.connect(sinG); sinG.connect(filt);
-    sinOsc.start(); nodes.push(sinOsc, sinG);
-
-    filt.connect(masterG); masterG.connect(this.masterGain);
-    nodes.push(filt, masterG);
-    this._droneNodes = this._droneNodes || {};
-    this._droneNodes[noteKey] = nodes;
-    this._startDroneViz();
+    const sinO=ctx.createOscillator(); sinO.type='sine'; sinO.frequency.value=baseFreq;
+    const sinG=ctx.createGain(); sinG.gain.value=.3;
+    sinO.connect(sinG); sinG.connect(masterG); sinO.start(); nodes.push(sinO,sinG);
+    filt.connect(masterG); masterG.connect(this.ctx.destination);
+    this.droneNodes[noteKey] = {nodes, masterG, filt};
+    this.droneActive[noteKey]=true; this._animateDrone();
   }
-
   stopDroneNote(noteKey) {
-    if (!this._droneNodes || !this._droneNodes[noteKey]) return;
-    const ctx = this.ctx;
-    const nodes = this._droneNodes[noteKey];
-    // Find the masterG (last node)
-    const masterG = nodes[nodes.length - 1];
-    if (masterG && masterG.gain) {
-      masterG.gain.setTargetAtTime(0, ctx.currentTime, 0.3);
+    const d=this.droneNodes[noteKey];
+    if (d) {
+      try {
+        d.masterG.gain.setTargetAtTime(0, this.ctx.currentTime, 0.3);
+        setTimeout(()=>{ d.nodes.forEach(n=>{ try{n.stop&&n.stop();}catch(e){} }); }, 800);
+      } catch(e){}
+      delete this.droneNodes[noteKey];
     }
-    setTimeout(() => {
-      nodes.forEach(n => { try { n.disconnect(); if (n.stop) n.stop(); } catch(e){} });
-    }, 1200);
-    delete this._droneNodes[noteKey];
-    if (!Object.keys(this._droneNodes).length) this._stopDroneViz();
+    this.droneActive[noteKey]=false;
+    if (!Object.values(this.droneActive).some(Boolean)) this._stopDroneAnim();
   }
-
-  _startDroneViz() {
+  _animateDrone() {
     if (this._droneAnim) return;
-    const bars = document.querySelectorAll('.drone-bar');
-    const heights = [8, 14, 20, 14, 8];
-    let phase = 0;
-    const animate = () => {
-      phase += 0.08;
-      bars.forEach((b, i) => {
-        const h = heights[i] + Math.sin(phase + i * 0.7) * 6;
-        b.style.height = h + 'px';
-        b.style.opacity = Object.keys(this._droneNodes||{}).length ? '0.8' : '0.2';
-      });
-      this._droneAnim = requestAnimationFrame(animate);
-    };
-    this._droneAnim = requestAnimationFrame(animate);
+    const bars=document.querySelectorAll('.drone-bar');
+    this._droneAnim=setInterval(()=>{
+      if (!Object.values(this.droneActive).some(Boolean)) { this._stopDroneAnim(); return; }
+      bars.forEach(b=>{ b.style.height=(6+Math.random()*16)+'px'; b.style.opacity=.3+Math.random()*.5; });
+    }, 120);
   }
-
-  _stopDroneViz() {
-    if (this._droneAnim) { cancelAnimationFrame(this._droneAnim); this._droneAnim = null; }
-    document.querySelectorAll('.drone-bar').forEach((b,i)=>{
-      b.style.height = [8,14,20,14,8][i] + 'px'; b.style.opacity = '0.3';
-    });
-  }
-
-  // ── Notation Playback ──────────────────────────────────────────────────
-  /**
-   * Play an array of parsed notation nodes as audio using a smooth
-   * sine-based synthesis (bansuri-like) tuned to JI frequencies.
-   * @param {Array}  nodes   - from parse()
-   * @param {number} saHz    - Adhara Shadjam frequency
-   * @param {number} bpm     - beats per minute (aksharas per minute)
-   * @returns {number}       - total duration in seconds
-   */
-  playSwaraSequence(nodes, saHz, bpm) {
-    this._ensureCtx();
-    const ctx = this.ctx;
-    const aksharaDur = 60.0 / bpm;
-
-    // Stop any previous notation playback
-    this.stopSwaraSequence();
-
-    this._notateNodes = [];
-    let t = ctx.currentTime + 0.05;
-
-    for (const n of nodes) {
-      if (n.type === 'rest') {
-        t += (n.dur || 1) * aksharaDur;
-        continue;
-      }
-      if (n.type !== 'swara') continue;
-
-      const sw = SWARA_DATA[n.symbol];
-      if (!sw) { t += (n.dur || 1) * aksharaDur; continue; }
-
-      const octMul = n.octave === 'tara' ? 2 : n.octave === 'mandra' ? 0.5 : 1;
-      const freq   = saHz * sw.ratio * octMul;
-      const dur    = (n.dur || 1) * aksharaDur;
-      const fadeDur = Math.min(0.08, dur * 0.15);
-
-      const osc = ctx.createOscillator();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, t);
-
-      // Kampita gamaka: oscillate pitch
-      if (n.gamaka === 'kampita') {
-        const vibDepth = freq * 0.015;
-        const steps = Math.floor(dur / 0.04);
-        for (let i = 0; i < steps; i++) {
-          const ft = t + i * 0.04;
-          const deviation = vibDepth * Math.sin(i * Math.PI * 0.6);
-          osc.frequency.setValueAtTime(freq + deviation, ft);
-        }
-      }
-      // Jaru up: slide from 95% to freq
-      if (n.gamaka === 'jaru_up') {
-        osc.frequency.setValueAtTime(freq * 0.94, t);
-        osc.frequency.linearRampToValueAtTime(freq, t + dur * 0.4);
-      }
-      // Jaru down: slide from 106% to freq
-      if (n.gamaka === 'jaru_down') {
-        osc.frequency.setValueAtTime(freq * 1.06, t);
-        osc.frequency.linearRampToValueAtTime(freq, t + dur * 0.4);
-      }
-
-      // Add harmonics (like a bansuri flute)
-      const masterG = ctx.createGain();
-      masterG.gain.setValueAtTime(0, t);
-      masterG.gain.linearRampToValueAtTime(this.volume * 0.45, t + fadeDur);
-      masterG.gain.setValueAtTime(this.volume * 0.45, t + dur - fadeDur * 2);
-      masterG.gain.linearRampToValueAtTime(0, t + dur - 0.01);
-
-      const harmG1 = ctx.createGain(); harmG1.gain.value = 0.3;
-      const osc2 = ctx.createOscillator(); osc2.type = 'sine'; osc2.frequency.value = freq * 2;
-      const harmG2 = ctx.createGain(); harmG2.gain.value = 0.12;
-      const osc3 = ctx.createOscillator(); osc3.type = 'sine'; osc3.frequency.value = freq * 3;
-
-      osc.connect(masterG); masterG.connect(this.masterGain);
-      osc2.connect(harmG1); harmG1.connect(masterG);
-      osc3.connect(harmG2); harmG2.connect(masterG);
-
-      [osc, osc2, osc3].forEach(o => { o.start(t); o.stop(t + dur + 0.02); });
-      this._notateNodes.push(osc, osc2, osc3, masterG, harmG1, harmG2);
-
-      t += dur;
-    }
-
-    this._notateEndTime = t;
-    // Auto-stop callback
-    const delay = (t - ctx.currentTime) * 1000 + 100;
-    this._notateTimer = setTimeout(() => this._onNotateEnd(), delay);
-    return t - ctx.currentTime;
-  }
-
-  stopSwaraSequence() {
-    if (this._notateTimer) { clearTimeout(this._notateTimer); this._notateTimer = null; }
-    if (this._notateNodes) {
-      this._notateNodes.forEach(n => {
-        try { n.disconnect(); if (n.stop) n.stop(0); } catch(e) {}
-      });
-      this._notateNodes = null;
-    }
-    this._onNotateEnd();
-  }
-
-  _onNotateEnd() {
-    // Reset UI play/stop buttons
-    const playBtn = document.getElementById('play-notation-btn');
-    const stopBtn = document.getElementById('stop-notation-btn');
-    if (playBtn) { playBtn.style.display = ''; }
-    if (stopBtn) { stopBtn.style.display = 'none'; }
+  _stopDroneAnim() {
+    if (this._droneAnim) { clearInterval(this._droneAnim); this._droneAnim=null; }
+    document.querySelectorAll('.drone-bar').forEach(b=>{ b.style.height='6px'; b.style.opacity='.3'; });
   }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 6. TALA CLOCK
+// 8. TALA ENGINE
 // ═══════════════════════════════════════════════════════════════════════════
-class TalaClock {
-  constructor(engine) {
-    this.engine = engine;
-    this.talaName = 'Adi';
-    this.bpm = 80;
-    this.saHz = 261.63;
-    this.running = false;
-    this.beat = 0;
-    this._timer = null;
-    this._beatMap = [];   // [{angaType, beatInAnga, isFirst}]
-    this._buildMap();
+class TalaEngine {
+  constructor(audioEngine) {
+    this.ae=audioEngine; this._timer=null; this._beat=0; this._ava=0;
+    this._beats=[]; this.bpm=80; this.isRunning=false;
   }
-
-  _buildMap() {
-    const angas = TALAS[this.talaName] || TALAS['Adi'];
-    this._beatMap = [];
-    let globalBeat = 0;
-    angas.forEach((a, ai) => {
-      for (let b = 0; b < a.b; b++) {
-        let btype;
-        if (globalBeat === 0) btype = 'sam';
-        else if (b === 0)     btype = 'laghu_start';
-        else if (a.t === 'O' && b === 1) btype = 'drutam_wave';
-        else if (a.t === 'U') btype = 'anudruta';
-        else                  btype = 'laghu_mid';
-        this._beatMap.push({ angaIdx:ai, angaType:a.t, beatInAnga:b, btype });
-        globalBeat++;
+  buildBeatList(talaName) {
+    const talas=TALAS[talaName]||TALAS['Adi'];
+    const beats=[];
+    talas.forEach(anga=>{
+      for(let b=0;b<anga.b;b++) {
+        const isFirst=b===0;
+        beats.push({ type:anga.t, pos:b, total:anga.b, name:anga.n, isSam:(beats.length===0&&isFirst) });
       }
     });
-    this.beat = 0;
-    this._renderClock();
+    return beats;
   }
-
-  setTala(name)  { this.talaName = name; this._buildMap(); }
-  setBpm(bpm)    { this.bpm = bpm; if (this.running) { this.stop(); this.start(); } }
-  setSaHz(sa)    { this.saHz = sa; }
-
-  start() {
-    if (this.running) return;
-    this.running = true;
-    this.engine._ensureCtx();
-    const interval = 60000 / this.bpm;
-    const tick = () => {
-      if (!this.running) return;
-      const info = this._beatMap[this.beat % this._beatMap.length];
-      this.engine.playBeat(info.btype, this.saHz);
-      this._highlightBeat(this.beat % this._beatMap.length);
-      document.getElementById('beat-counter').textContent =
-        (this.beat % this._beatMap.length) + 1;
-      this.beat++;
-      this._timer = setTimeout(tick, interval);
+  start(talaName, bpm) {
+    this.stop();
+    this.bpm=bpm||this.bpm;
+    this._beats=this.buildBeatList(talaName);
+    this._beat=0; this._ava=0; this.isRunning=true;
+    const interval=(60/this.bpm)*1000;
+    const ctx=this.ae._ensureCtx();
+    const saHz=getSaHz();
+    const tick=()=>{
+      const b=this._beats[this._beat];
+      const beatType=b.isSam?'sam':b.type==='L'&&b.pos===0?'laghu_start':b.type==='L'?'laghu_mid':b.type==='O'?'drutam_wave':'anudruta';
+      this.ae.playBeat(beatType, saHz, ctx.currentTime+0.01);
+      highlightBeat(this._beat, this._beats.length);
+      updateBeatCounter(this._beat+1, this._beats.length, this.bpm);
+      this._beat++;
+      if (this._beat >= this._beats.length) { this._beat=0; this._ava++; }
+      this._timer=setTimeout(tick, interval);
     };
     tick();
   }
-
   stop() {
-    this.running = false;
-    if (this._timer) { clearTimeout(this._timer); this._timer = null; }
-    this._highlightBeat(-1);
-    this.beat = 0;
-    document.getElementById('beat-counter').textContent = '1';
+    if (this._timer) { clearTimeout(this._timer); this._timer=null; }
+    this.isRunning=false; highlightBeat(-1, 0);
   }
-
-  _renderClock() {
-    const container = document.getElementById('beat-clock');
-    const angas = TALAS[this.talaName] || [];
-    const angaColors = { L:'#1a3a5c', O:'#1a3a1a', U:'#2a1a3a' };
-    const angaBorderColors = { L:'#58a6ff', O:'#3fb950', U:'#bc8cff' };
-    container.innerHTML = '';
-    let globalBeat = 0;
-
-    angas.forEach((a, ai) => {
-      const grp = document.createElement('div');
-      grp.className = 'anga-group';
-      grp.dataset.angaIdx = ai;
-
-      const lbl = document.createElement('div');
-      lbl.className = 'anga-label';
-      lbl.textContent = a.t;
-      grp.appendChild(lbl);
-
-      for (let b = 0; b < a.b; b++) {
-        const cell = document.createElement('div');
-        cell.className = 'beat-cell ' + (a.t==='L'?'laghu':a.t==='O'?'drutam':'anudruta');
-        cell.dataset.beat = globalBeat;
-        if (globalBeat === 0) cell.classList.add('sam');
-        cell.textContent = b + 1;
-        grp.appendChild(cell);
-        globalBeat++;
-      }
-      container.appendChild(grp);
-    });
-  }
-
-  _highlightBeat(idx) {
-    document.querySelectorAll('.beat-cell').forEach(c => c.classList.remove('active'));
-    if (idx >= 0) {
-      const target = document.querySelector(`.beat-cell[data-beat="${idx}"]`);
-      if (target) target.classList.add('active');
+  setBpm(bpm) {
+    this.bpm=bpm;
+    if (this.isRunning) {
+      const tn=document.getElementById('tala-sel').value;
+      this.start(tn, bpm);
     }
   }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 7. CODEMIRROR MODE — raganotate
+// 9. NOTATION PLAYBACK
 // ═══════════════════════════════════════════════════════════════════════════
-CodeMirror.defineMode('raganotate', () => ({
-  token(stream) {
-    if (stream.match(/\{[^}]*\}/)) return 'meta';
-    if (stream.match(/\/\/.*/))    return 'comment';
-    if (stream.match(/\|\|/))      return 'rn-bar';
-    if (stream.match(/\|/))        return 'rn-bar';
-    if (stream.match(/,/))         return 'rn-bar';
-    if (stream.match(/-/))         return 'rn-rest';
-    // Swara: optional dot, sym, optional +/123/', gamaka suffix, duration
-    if (stream.match(/\.?(?:[SP])[~\/\\^vwgltrvib]*[;:]*/)) return 'rn-achala';
-    if (stream.match(/\.?(?:[RGMDNrgnd][+]?[123]?'?)[~\/\\^vwgltrvib]*[;:]*/)) return 'rn-swara';
-    stream.next();
-    return null;
-  }
-}));
+let notationPlayback = null;
 
-CodeMirror.defineMIME('text/x-raganotate', 'raganotate');
+function playNotation(nodes, saHz, bpm) {
+  stopNotationPlayback();
+  const ctx = ae._ensureCtx();
+  const beatDur = 60 / bpm;
+  let t = ctx.currentTime + 0.1;
+  const scheduled = [];
+
+  nodes.forEach(n => {
+    if (n.type === 'swara') {
+      const sw = SWARA_DATA[n.symbol];
+      if (!sw) return;
+      const octMul = n.octave==='tara' ? 2 : n.octave==='mandra' ? 0.5 : 1;
+      const freq = saHz * sw.ratio * octMul;
+      const dur = Math.max(0.1, n.dur * beatDur * 0.9);
+      ae.playSwara(t, freq, dur, n.gamaka);
+      t += n.dur * beatDur;
+    } else if (n.type === 'rest') {
+      t += beatDur;
+    }
+  });
+
+  document.getElementById('play-notation-btn').style.display='none';
+  document.getElementById('stop-notation-btn').style.display='';
+  const totalDur = (t - ctx.currentTime) * 1000;
+  notationPlayback = setTimeout(() => {
+    document.getElementById('play-notation-btn').style.display='';
+    document.getElementById('stop-notation-btn').style.display='none';
+    notationPlayback=null;
+  }, totalDur);
+}
+
+function stopNotationPlayback() {
+  if (notationPlayback) { clearTimeout(notationPlayback); notationPlayback=null; }
+  document.getElementById('play-notation-btn').style.display='';
+  document.getElementById('stop-notation-btn').style.display='none';
+}
 
 // ═══════════════════════════════════════════════════════════════════════════
-// 8. APP INIT
+// 10. CODEMIRROR MODE
 // ═══════════════════════════════════════════════════════════════════════════
-const STARTER = `{tala: Adi}
-{raga: Hamsadhvani}
-
-| S  R  G+ P  | N+ S' N+ P  |
-| G+ P  R  S  | S  ;        |
-
-{raga: Hamsadhvani — Vathapi Ganapathim (simplified)}
-
-| S  R  G+~ P  | N+/ S' N+\\ P |
-| G+ P  R  S;  |`;
-
-const audioEngine = new AudioEngine();
-let talaClock;
-let editor;
-
-window.addEventListener('DOMContentLoaded', () => {
-  // ── CodeMirror setup ────────────────────────────────────────────────────
-  editor = CodeMirror.fromTextArea(document.getElementById('editor-textarea'), {
-    mode: 'raganotate',
-    theme: 'default',
-    lineNumbers: true,
-    lineWrapping: true,
-    autofocus: true,
-    extraKeys: { 'Ctrl-Enter': () => updatePreview() },
-  });
-  editor.setValue(STARTER);
-  editor.on('change', debounce(updatePreview, 300));
-
-  // ── Tala clock ──────────────────────────────────────────────────────────
-  talaClock = new TalaClock(audioEngine);
-
-  // ── Initial render ──────────────────────────────────────────────────────
-  updatePreview();
-  updateRagaInfoBar();
-
-  // ── BPM slider ──────────────────────────────────────────────────────────
-  const bpmSlider = document.getElementById('bpm-slider');
-  const bpmVal    = document.getElementById('bpm-val');
-  const bpmDisp   = document.getElementById('bpm-display');
-  bpmSlider.addEventListener('input', () => {
-    const v = +bpmSlider.value;
-    bpmVal.textContent = v; bpmDisp.textContent = `@ ${v} BPM`;
-    talaClock.setBpm(v);
-  });
-
-  // ── Sa selector ─────────────────────────────────────────────────────────
-  document.getElementById('sa-note-sel').addEventListener('change', e => {
-    const sa = +e.target.value;
-    talaClock.setSaHz(sa);
-  });
-
-  // ── Tala selector ───────────────────────────────────────────────────────
-  document.getElementById('tala-sel').addEventListener('change', e => {
-    talaClock.setTala(e.target.value);
-  });
-
-  // ── Transport ───────────────────────────────────────────────────────────
-  document.getElementById('play-btn').addEventListener('click', () => {
-    document.getElementById('play-btn').classList.add('active');
-    document.getElementById('stop-btn').classList.remove('active');
-    talaClock.start();
-  });
-  document.getElementById('stop-btn').addEventListener('click', () => {
-    document.getElementById('stop-btn').classList.add('active');
-    document.getElementById('play-btn').classList.remove('active');
-    talaClock.stop();
-  });
-
-  // ── Instrument buttons ──────────────────────────────────────────────────
-  ['mridangam','harmonium','bell','none'].forEach(inst => {
-    document.getElementById(`inst-${inst}`).addEventListener('click', () => {
-      document.querySelectorAll('.inst-btn').forEach(b => b.classList.remove('active'));
-      document.getElementById(`inst-${inst}`).classList.add('active');
-      audioEngine.instrument = inst;
-    });
-  });
-
-  // ── Volume ──────────────────────────────────────────────────────────────
-  document.getElementById('volume-slider').addEventListener('input', e => {
-    audioEngine.setVolume(e.target.value / 100);
-  });
-
-  // ── Shruti drone ────────────────────────────────────────────────────────
-  const droneMap = { 'drone-sa':'sa', 'drone-pa':'pa', 'drone-sa2':'sa2' };
-  Object.entries(droneMap).forEach(([elId, key]) => {
-    document.getElementById(elId).addEventListener('click', () => {
-      const el = document.getElementById(elId);
-      const saHz = +document.getElementById('sa-note-sel').value;
-      if (el.classList.contains('on')) {
-        el.classList.remove('on');
-        audioEngine.stopDroneNote(key);
-      } else {
-        el.classList.add('on');
-        audioEngine.startDroneNote(key, saHz);
+CodeMirror.defineMode('raganotate', function() {
+  const swaraRe=/^\.?(?:[SRGmMPDN][+]?[123]?|[rgnd])['][~\/\\^vw*]?[;:]*/;
+  const swaraRe2=/^\.?(?:[SRGmMPDN][+]?[123]?|[rgnd])[~\/\\^vw*]?[;:]*/;
+  return {
+    token(stream) {
+      if (stream.match(/\|\|/)) return 'rn-bar';
+      if (stream.match(/\|/))   return 'rn-bar';
+      if (stream.match(/,/))    return 'rn-bar';
+      if (stream.match(/-/))    return 'rn-rest';
+      if (stream.match(/\{[^}]*\}/)) return 'rn-meta';
+      if (stream.match(/\/\/.*/))    return 'rn-meta';
+      if (stream.match(swaraRe)) {
+        const tok=stream.current();
+        const clean=tok.replace(/[~\/\\^vw*;:'.]/g,'').replace(/^\./,'');
+        const canonical=resolveAlias(clean);
+        const sw=SWARA_DATA[canonical];
+        if (!sw) return 'rn-invalid';
+        if (sw.achala) return 'rn-achala';
+        if (tok.includes("'")) return 'rn-tara';
+        if (tok.startsWith('.')) return 'rn-mandra';
+        return 'rn-swara';
       }
+      if (stream.match(swaraRe2)) {
+        const tok=stream.current();
+        const clean=tok.replace(/[~\/\\^vw*;:'.]/g,'').replace(/^\./,'');
+        const canonical=resolveAlias(clean);
+        const sw=SWARA_DATA[canonical];
+        if (!sw) return 'rn-invalid';
+        if (sw.achala) return 'rn-achala';
+        if (tok.includes("'")) return 'rn-tara';
+        if (tok.startsWith('.')) return 'rn-mandra';
+        return 'rn-swara';
+      }
+      if (stream.match(/[;:]+/)) return 'rn-dur';
+      stream.next();
+      return null;
+    }
+  };
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 11. GEETHAM EDITOR
+// ═══════════════════════════════════════════════════════════════════════════
+let sectionCount = 0;
+
+function addSection(name='Pallavi') {
+  sectionCount++;
+  const cpb = parseInt(document.getElementById('cells-per-bar').value) || 8;
+  const container = document.getElementById('sections-container');
+  const id = 'section-' + sectionCount;
+  const div = document.createElement('div');
+  div.className = 'section-block';
+  div.id = id;
+  div.innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <input type="text" value="${name}" style="background:var(--bg3);border:1px solid var(--border);
+        color:var(--text);border-radius:4px;padding:3px 8px;font-size:13px;font-weight:600;width:140px">
+      <button class="btn" style="font-size:11px" onclick="addBarToSection('${id}')">+ Bar</button>
+      <button class="btn danger" style="font-size:11px" onclick="document.getElementById('${id}').remove()">✕ Remove</button>
+    </div>
+    <div id="${id}-bars"></div>
+    <div id="${id}-svg" class="geetham-svg"></div>
+  `;
+  container.appendChild(div);
+  // Add initial 2 bars
+  addBarToSection(id, cpb);
+  addBarToSection(id, cpb);
+}
+
+function addBarToSection(sectionId, cpb) {
+  cpb = cpb || parseInt(document.getElementById('cells-per-bar').value) || 8;
+  const barsDiv = document.getElementById(sectionId + '-bars');
+  if (!barsDiv) return;
+  const barIdx = barsDiv.querySelectorAll('.bar-block').length;
+  const barDiv = document.createElement('div');
+  barDiv.className = 'bar-block';
+  barDiv.style.cssText = 'display:flex;align-items:stretch;margin-bottom:4px;';
+  barDiv.innerHTML = `
+    <div class="bar-marker" title="Bar ${barIdx+1}">|</div>
+    <div>
+      <div class="notation-row">
+        <div class="row-label">Notation</div>
+        <div class="row-cells">${Array.from({length:cpb},(_,i)=>`<input class="notation-cell" data-bar="${barIdx}" data-cell="${i}" placeholder="—" autocomplete="off" spellcheck="false">`).join('')}</div>
+      </div>
+      <div class="lyrics-row">
+        <div class="row-label" style="color:var(--purple)">Lyrics</div>
+        <div class="row-cells">${Array.from({length:cpb},(_,i)=>`<input class="lyrics-cell" data-bar="${barIdx}" data-cell="${i}" placeholder="—" autocomplete="off" spellcheck="false">`).join('')}</div>
+      </div>
+    </div>
+  `;
+  barsDiv.appendChild(barDiv);
+}
+
+function renderGeethamSection(sectionId) {
+  const barsDiv = document.getElementById(sectionId + '-bars');
+  const svgDiv = document.getElementById(sectionId + '-svg');
+  if (!barsDiv || !svgDiv) return;
+  // Collect all notation cells
+  const allNotation = [];
+  barsDiv.querySelectorAll('.bar-block').forEach(bar => {
+    const cells = bar.querySelectorAll('.notation-cell');
+    const lyrics = bar.querySelectorAll('.lyrics-cell');
+    allNotation.push('|');
+    cells.forEach((cell, i) => {
+      const v = cell.value.trim();
+      if (v && v !== '—') allNotation.push(v + (lyrics[i]&&lyrics[i].value?'':''));
+      else allNotation.push('-');
     });
   });
+  allNotation.push('||');
+  const notationStr = allNotation.join(' ');
+  const nodes = parse(notationStr);
+  // Attach lyrics
+  let nodeIdx = 0;
+  barsDiv.querySelectorAll('.bar-block').forEach(bar => {
+    const ncells = bar.querySelectorAll('.notation-cell');
+    const lcells = bar.querySelectorAll('.lyrics-cell');
+    ncells.forEach((nc, i) => {
+      while (nodeIdx < nodes.length && nodes[nodeIdx].type !== 'swara' && nodes[nodeIdx].type !== 'rest') nodeIdx++;
+      if (nodeIdx < nodes.length && lcells[i]) {
+        const lyric = lcells[i].value.trim();
+        if (lyric) nodes[nodeIdx].lyric = lyric;
+      }
+      nodeIdx++;
+    });
+  });
+  const violations = getRagaViolations(nodes);
+  const showLyrics = document.getElementById('show-lyrics') && document.getElementById('show-lyrics').checked;
+  svgDiv.innerHTML = renderSVG(nodes, {maxWidth:860, showLyrics}, violations);
+}
 
-  // ── Toolbar insert buttons ──────────────────────────────────────────────
-  document.querySelectorAll('.sym-btn').forEach(btn => {
+// ═══════════════════════════════════════════════════════════════════════════
+// 12. RAGA REFERENCE TABLE
+// ═══════════════════════════════════════════════════════════════════════════
+function buildRagaRef() {
+  const div = document.getElementById('raga-ref-content');
+  let html = `<h2 style="color:var(--accent);margin-bottom:14px;font-size:18px">Raga Reference Database</h2>`;
+  html += `<div style="margin-bottom:12px">
+    <input type="text" id="raga-search" placeholder="Search raga name…"
+      style="background:var(--bg3);border:1px solid var(--border);color:var(--text);
+      border-radius:6px;padding:6px 12px;font-size:13px;width:280px">
+  </div>`;
+  html += `<table id="raga-table" style="width:100%;border-collapse:collapse;font-size:12px">
+    <thead><tr style="background:var(--bg2)">
+      <th style="padding:6px 10px;text-align:left;border-bottom:1px solid var(--border)">Mela</th>
+      <th style="padding:6px 10px;text-align:left;border-bottom:1px solid var(--border)">Name</th>
+      <th style="padding:6px 10px;text-align:left;border-bottom:1px solid var(--border)">Arohanam</th>
+      <th style="padding:6px 10px;text-align:left;border-bottom:1px solid var(--border)">Avarohanam</th>
+      <th style="padding:6px 10px;text-align:left;border-bottom:1px solid var(--border)">Vadi</th>
+      <th style="padding:6px 10px;text-align:left;border-bottom:1px solid var(--border)">Type</th>
+    </tr></thead><tbody>`;
+  Object.entries(RAGA_DB).forEach(([name, r]) => {
+    html += `<tr class="raga-row" data-name="${name.toLowerCase()}" style="border-bottom:1px solid var(--border)">
+      <td style="padding:5px 10px;color:var(--muted)">${r.mela}</td>
+      <td style="padding:5px 10px;font-weight:600;color:var(--accent2)">${name}</td>
+      <td style="padding:5px 10px;font-family:monospace;color:var(--text)">${r.aro||'—'}</td>
+      <td style="padding:5px 10px;font-family:monospace;color:var(--muted)">${r.ava||'—'}</td>
+      <td style="padding:5px 10px;color:var(--accent)">${r.vadi||'—'}</td>
+      <td style="padding:5px 10px"><span style="font-size:10px;padding:1px 6px;border-radius:8px;
+        background:${r.janya?'#1a2a3a':'#1a3a1a'};color:${r.janya?'#58a6ff':'#3fb950'}">
+        ${r.janya?'Janya':'Melakarta'}</span></td>
+    </tr>`;
+  });
+  html += '</tbody></table>';
+  div.innerHTML = html;
+  document.getElementById('raga-search').addEventListener('input', e => {
+    const q = e.target.value.toLowerCase();
+    document.querySelectorAll('.raga-row').forEach(row => {
+      row.style.display = row.dataset.name.includes(q) ? '' : 'none';
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 13. BEAT CLOCK UI
+// ═══════════════════════════════════════════════════════════════════════════
+function buildBeatClock(talaName) {
+  const clock = document.getElementById('beat-clock');
+  clock.innerHTML = '';
+  const angas = TALAS[talaName] || TALAS['Adi'];
+  angas.forEach(anga => {
+    const grp = document.createElement('div');
+    grp.className = 'anga-group';
+    grp.innerHTML = `<span class="anga-label">${anga.n}</span>`;
+    for (let i=0; i<anga.b; i++) {
+      const cell = document.createElement('div');
+      const cls = anga.t==='L'?'laghu':anga.t==='O'?'drutam':'anudruta';
+      cell.className = `beat-cell ${cls}`;
+      cell.textContent = i+1;
+      grp.appendChild(cell);
+    }
+    clock.appendChild(grp);
+  });
+}
+
+function highlightBeat(idx, total) {
+  const cells = document.querySelectorAll('.beat-cell');
+  cells.forEach((c,i) => c.classList.toggle('active', i===idx));
+  if (idx===0) cells.forEach(c => c.classList.remove('sam'));
+}
+
+function updateBeatCounter(beat, total, bpm) {
+  document.getElementById('beat-counter').textContent = beat + '/' + total;
+  document.getElementById('bpm-display').textContent = '@ ' + bpm + ' BPM';
+}
+
+function getSaHz() {
+  const sel = document.getElementById('sa-note-sel');
+  return sel ? parseFloat(sel.value) : 261.63;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 14. MAIN LIVE UPDATE
+// ═══════════════════════════════════════════════════════════════════════════
+let debounceTimer = null;
+let editor = null;
+const ae = new AudioEngine();
+const talaEngine = new TalaEngine(ae);
+
+function liveUpdate() {
+  if (!editor) return;
+  const text = editor.getValue();
+  let nodes, violations;
+  try {
+    nodes = parse(text);
+    violations = getRagaViolations(nodes);
+    const swaraCount = nodes.filter(n=>n.type==='swara').length;
+    const barCount   = nodes.filter(n=>n.type==='bar'||n.type==='sectionEnd').length;
+    document.getElementById('stats').textContent =
+      `${swaraCount} swaras · ${barCount} bars`;
+    document.getElementById('parse-status').className='parse-status status-ok';
+    document.getElementById('parse-status').textContent='✓ OK';
+  } catch(e) {
+    document.getElementById('parse-status').className='parse-status status-err';
+    document.getElementById('parse-status').textContent='✕ Error';
+    return;
+  }
+  updateRagaInfoBar(violations);
+  const svgEl = document.getElementById('svg-output');
+  if (svgEl) svgEl.outerHTML = renderSVG(nodes,{maxWidth:860,showLyrics:true},violations)
+    .replace('<svg ', '<svg id="svg-output" ');
+  // Re-query since outerHTML replaces element
+  const newSvg = document.getElementById('svg-output');
+  if (newSvg) newSvg.setAttribute('id','svg-output');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// 15. INIT
+// ═══════════════════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', function() {
+  // CodeMirror
+  const ta = document.getElementById('editor-textarea');
+  editor = CodeMirror.fromTextArea(ta, {
+    mode:'raganotate', lineNumbers:true, lineWrapping:true, theme:'default',
+  });
+  editor.getWrapperElement().style.cssText='flex:1;display:flex;flex-direction:column;overflow:hidden;';
+  editor.getScrollerElement().style.flex='1';
+
+  // Default example — Jayakaru Geetam Pallavi
+  editor.setValue(
+`// Jayakaru Geetam — Pallavi
+// Raga: Dhanyasi (8th mela janyam) | Tala: Chaturashra Dhruvam
+
+| n D P | n | S , | n S g , | m g r S ||
+| n D P | n | S , | n S M g | g r r S ||
+| G , M , | P , | G M P M | G r S , ||
+| n , S , | n D | P n S' S' | g r S , ||`
+  );
+
+  editor.on('change', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(liveUpdate, 300);
+  });
+
+  // Toolbar insert buttons
+  document.querySelectorAll('.sym-btn[data-insert]').forEach(btn => {
     btn.addEventListener('click', () => {
       editor.replaceSelection(btn.dataset.insert);
       editor.focus();
     });
   });
 
-  // ── Theme toggle ────────────────────────────────────────────────────────
-  document.getElementById('theme-btn').addEventListener('click', () => {
-    const html = document.documentElement;
-    if (html.dataset.theme === 'light') {
-      delete html.dataset.theme;
-      document.getElementById('theme-btn').textContent = '☀';
-    } else {
-      html.dataset.theme = 'light';
-      document.getElementById('theme-btn').textContent = '🌙';
-    }
-    updatePreview();
+  // BPM slider
+  const bpmSlider = document.getElementById('bpm-slider');
+  const bpmVal    = document.getElementById('bpm-val');
+  bpmSlider.addEventListener('input', () => {
+    bpmVal.textContent = bpmSlider.value;
+    talaEngine.setBpm(parseInt(bpmSlider.value));
+    document.getElementById('bpm-display').textContent = '@ ' + bpmSlider.value + ' BPM';
+  });
+  document.getElementById('bpm-preset').addEventListener('change', e => {
+    if (!e.target.value) return;
+    bpmSlider.value = e.target.value;
+    bpmVal.textContent = e.target.value;
+    talaEngine.setBpm(parseInt(e.target.value));
+    e.target.value = '';
   });
 
-  // ── SVG Export ──────────────────────────────────────────────────────────
+  // Tala selector
+  const talaEl = document.getElementById('tala-sel');
+  talaEl.addEventListener('change', () => {
+    buildBeatClock(talaEl.value);
+    if (talaEngine.isRunning) talaEngine.start(talaEl.value, parseInt(bpmSlider.value));
+  });
+
+  // Raga selector
+  document.getElementById('raga-sel').addEventListener('change', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(liveUpdate, 100);
+  });
+
+  // Sa selector
+  document.getElementById('sa-note-sel').addEventListener('change', () => {
+    Object.keys(ae.droneActive).forEach(k => {
+      if (ae.droneActive[k]) { ae.stopDroneNote(k); ae.startDroneNote(k, getSaHz()); }
+    });
+  });
+
+  // Transport
+  document.getElementById('play-btn').addEventListener('click', () =>
+    talaEngine.start(talaEl.value, parseInt(bpmSlider.value)));
+  document.getElementById('stop-btn').addEventListener('click', () => talaEngine.stop());
+
+  // Notation playback
+  document.getElementById('play-notation-btn').addEventListener('click', () => {
+    const nodes = parse(editor.getValue());
+    playNotation(nodes, getSaHz(), parseInt(bpmSlider.value));
+  });
+  document.getElementById('stop-notation-btn').addEventListener('click', stopNotationPlayback);
+
+  // Instrument buttons
+  ['mridangam','harmonium','bell','none'].forEach(inst => {
+    document.getElementById('inst-' + inst).addEventListener('click', function() {
+      document.querySelectorAll('.inst-btn').forEach(b => b.classList.remove('active'));
+      this.classList.add('active');
+      ae.instrument = inst;
+    });
+  });
+
+  // Volume
+  document.getElementById('volume-slider').addEventListener('input', e =>
+    ae.setVolume(parseInt(e.target.value)/100));
+
+  // Drone buttons
+  ['sa','pa','sa2'].forEach(key => {
+    document.getElementById('drone-' + key).addEventListener('click', function() {
+      if (ae.droneActive[key]) { ae.stopDroneNote(key); this.classList.remove('on'); }
+      else { ae.startDroneNote(key, getSaHz()); this.classList.add('on'); }
+    });
+  });
+
+  // Export SVG
   document.getElementById('export-svg-btn').addEventListener('click', () => {
     const svgEl = document.getElementById('svg-output');
-    const blob = new Blob([svgEl.innerHTML], { type:'image/svg+xml' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'raganotate_notation.svg';
-    a.click();
+    if (!svgEl) return;
+    const blob = new Blob([svgEl.outerHTML], {type:'image/svg+xml'});
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+    a.download = 'raganotate_notation.svg'; a.click();
   });
 
-  // ── Raga selector → re-render with violation highlighting ───────────────
-  document.getElementById('raga-sel').addEventListener('change', () => {
-    updatePreview();
+  // Theme toggle
+  document.getElementById('theme-btn').addEventListener('click', () => {
+    const isLight = document.documentElement.dataset.theme === 'light';
+    document.documentElement.dataset.theme = isLight ? '' : 'light';
+    document.getElementById('theme-btn').textContent = isLight ? '☀' : '🌙';
+    liveUpdate();
   });
 
-  // ── Play Notation button ─────────────────────────────────────────────────
-  document.getElementById('play-notation-btn').addEventListener('click', () => {
-    const text   = editor ? editor.getValue() : '';
-    const nodes  = parse(text);
-    const saHz   = +document.getElementById('sa-note-sel').value || 261.63;
-    const bpm    = +document.getElementById('bpm-slider').value  || 80;
-    const dur    = audioEngine.playSwaraSequence(nodes, saHz, bpm);
-    document.getElementById('play-notation-btn').style.display = 'none';
-    document.getElementById('stop-notation-btn').style.display = '';
-    // Show duration
-    document.getElementById('stats').textContent +=
-      ` · ▶ ${dur.toFixed(1)}s`;
+  // Reference panel
+  document.getElementById('ref-btn').addEventListener('click', () =>
+    document.getElementById('ref-panel').classList.toggle('open'));
+
+  // Tabs
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', function() {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      this.classList.add('active');
+      const t = this.dataset.tab;
+      document.getElementById('editor-pane').style.display = t==='notation'?'':'none';
+      document.getElementById('preview-pane').style.display = t==='notation'?'':'none';
+      const gp = document.getElementById('geetham-pane');
+      gp.style.display = t==='geetham'?'flex':'none';
+      gp.classList.toggle('active', t==='geetham');
+      const rp = document.getElementById('raga-ref-pane');
+      rp.style.display = t==='ragas'?'flex':'none';
+      if (t==='ragas' && !document.querySelector('.raga-row')) buildRagaRef();
+    });
   });
 
-  document.getElementById('stop-notation-btn').addEventListener('click', () => {
-    audioEngine.stopSwaraSequence();
+  // Geetham editor
+  document.getElementById('add-section-btn').addEventListener('click', () => {
+    const names = ['Pallavi','Anupallavi','Charanam','Madhyamakala','Charanam 2'];
+    const next = names[sectionCount] || 'Section ' + (sectionCount+1);
+    addSection(next);
   });
+  document.getElementById('cells-per-bar').addEventListener('change', () => {
+    // Just info for new bars
+  });
+  // Auto-render geetham on input
+  document.getElementById('geetham-content').addEventListener('input', e => {
+    if (e.target.classList.contains('notation-cell') || e.target.classList.contains('lyrics-cell')) {
+      const sectionEl = e.target.closest('.section-block');
+      if (sectionEl) {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(() => renderGeethamSection(sectionEl.id), 400);
+      }
+    }
+  });
+
+  document.getElementById('export-geetham-btn').addEventListener('click', () => {
+    const svgs = document.querySelectorAll('.geetham-svg svg');
+    if (!svgs.length) return;
+    const combined = Array.from(svgs).map(s => s.outerHTML).join('\n');
+    const blob = new Blob([combined],{type:'image/svg+xml'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download='raganotate_geetham.svg'; a.click();
+  });
+
+  document.getElementById('play-geetham-btn').addEventListener('click', () => {
+    // Collect all notation from all sections
+    let allText = '';
+    document.querySelectorAll('.section-block').forEach(sec => {
+      sec.querySelectorAll('.bar-block').forEach(bar => {
+        allText += '| ';
+        bar.querySelectorAll('.notation-cell').forEach(c => { allText += (c.value.trim()||'-') + ' '; });
+      });
+      allText += '|| ';
+    });
+    const nodes = parse(allText);
+    playNotation(nodes, getSaHz(), parseInt(bpmSlider.value));
+  });
+
+  // Initialize default sections in Geetham editor
+  addSection('Pallavi');
+  addSection('Anupallavi');
+
+  // Init
+  buildBeatClock(talaEl.value);
+  liveUpdate();
+  updateRagaInfoBar();
 });
-
-// ── Live preview update ──────────────────────────────────────────────────
-function updatePreview() {
-  const text = editor ? editor.getValue() : '';
-  try {
-    const nodes      = parse(text);
-    const violations = getRagaViolations(nodes);
-    const swaraCount = nodes.filter(n => n.type === 'swara').length;
-    const barCount   = nodes.filter(n => n.type === 'bar' || n.type === 'sectionEnd').length;
-
-    const maxW = document.getElementById('preview-scroll').clientWidth - 40 || 860;
-    const svgStr = renderSVG(nodes, { maxWidth: maxW, showLyrics: true }, violations);
-    document.getElementById('svg-output').outerHTML =
-      svgStr.replace('<svg ', '<svg id="svg-output" ');
-
-    document.getElementById('parse-status').className = 'status-ok';
-    document.getElementById('parse-status').textContent =
-      violations.size > 0 ? `✓ OK ⚠${violations.size}` : '✓ OK';
-    document.getElementById('stats').textContent =
-      `${swaraCount} swaras · ${barCount} bars · ${nodes.length} nodes`;
-
-    updateRagaInfoBar(violations);
-  } catch(err) {
-    document.getElementById('parse-status').className = 'status-err';
-    document.getElementById('parse-status').textContent = '✗ ' + err.message;
-    updateRagaInfoBar();
-  }
-}
-
-function debounce(fn, ms) {
-  let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); };
-}
 </script>
 </body>
 </html>

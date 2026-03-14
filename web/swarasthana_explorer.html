@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RagaNotate — Swarasthana Explorer</title>
+<style>
+/* ─── RESET & TOKENS ───────────────────────────────────────────────────── */
+:root {
+  --bg:      #0d1117; --bg2: #161b22; --bg3: #21262d; --bg4: #2d333b;
+  --border:  #30363d; --text: #e6edf3; --muted: #8b949e;
+  --accent:  #d4a017; --accent2: #58a6ff; --green: #3fb950;
+  --red:     #f85149; --purple: #bc8cff; --orange: #ffa657;
+  --c-sa:    #d4a017; --c-ri: #58a6ff;  --c-ga:  #3fb950;
+  --c-ma:    #bc8cff; --c-pa: #d4a017;  --c-da:  #f85149;
+  --c-ni:    #ffa657;
+}
+[data-theme="light"] {
+  --bg:#f6f8fa; --bg2:#ffffff; --bg3:#eaeef2; --bg4:#d0d7de;
+  --border:#d0d7de; --text:#1f2328; --muted:#656d76;
+  --accent:#b07d00; --accent2:#0969da; --green:#1a7f37;
+  --red:#d1242f; --purple:#6639ba; --orange:#bc4c00;
+}
+* { box-sizing:border-box; margin:0; padding:0; }
+body {
+  background:var(--bg); color:var(--text);
+  font-family:'Segoe UI',Arial,sans-serif; min-height:100vh;
+}
+
+/* ─── HEADER ──────────────────────────────────────────────────────────── */
+#header {
+  background:var(--bg2); border-bottom:1px solid var(--border);
+  padding:12px 20px; display:flex; align-items:center; gap:16px;
+  flex-wrap:wrap;
+}
+.logo { font-size:20px; font-weight:700; color:var(--accent); }
+.logo span { color:var(--accent2); }
+.subtitle { font-size:13px; color:var(--muted); flex:1; }
+.btn {
+  background:var(--bg3); border:1px solid var(--border); color:var(--text);
+  padding:6px 14px; border-radius:6px; cursor:pointer; font-size:13px;
+  transition:background .15s;
+}
+.btn:hover { background:var(--bg4); }
+.btn.primary { background:var(--accent); border-color:var(--accent); color:#000; font-weight:600; }
+.btn.primary:hover { filter:brightness(1.1); }
+
+/* ─── CONTROLS BAR ───────────────────────────────────────────────────── */
+#controls {
+  background:var(--bg2); border-bottom:1px solid var(--border);
+  padding:8px 20px; display:flex; align-items:center; gap:20px; flex-wrap:wrap;
+}
+.ctrl-grp { display:flex; align-items:center; gap:8px; }
+.ctrl-label { font-size:12px; color:var(--muted); }
+select, input[type=range], input[type=number] {
+  background:var(--bg3); border:1px solid var(--border); color:var(--text);
+  padding:4px 8px; border-radius:4px; font-size:13px;
+}
+input[type=range] { width:100px; }
+.sa-val { font-size:13px; color:var(--accent); font-weight:600; min-width:52px; }
+
+/* ─── MAIN LAYOUT ─────────────────────────────────────────────────────── */
+main { max-width:1100px; margin:0 auto; padding:24px 20px; }
+
+/* ─── SECTION HEADERS ─────────────────────────────────────────────────── */
+h2 {
+  font-size:16px; font-weight:600; color:var(--accent2);
+  border-bottom:1px solid var(--border); padding-bottom:8px; margin-bottom:16px;
+}
+section { margin-bottom:36px; }
+
+/* ─── SWARA KEYBOARD ─────────────────────────────────────────────────── */
+#keyboard-wrap {
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:10px; padding:20px; overflow-x:auto;
+}
+#keyboard {
+  display:flex; gap:6px; min-width:700px; justify-content:center;
+  align-items:flex-end;
+}
+.swara-key {
+  display:flex; flex-direction:column; align-items:center;
+  border-radius:8px; padding:10px 6px 8px;
+  min-width:70px; cursor:pointer; user-select:none;
+  border:2px solid transparent; transition:transform .08s, filter .1s;
+  position:relative;
+}
+.swara-key:hover { transform:translateY(-3px); filter:brightness(1.15); }
+.swara-key.playing { transform:translateY(-6px) scale(1.05); filter:brightness(1.3); }
+.swara-key.achala { border-color:#fff3; }
+.swara-key .sym {
+  font-size:22px; font-weight:700; color:#fff; text-shadow:0 1px 3px #0006;
+}
+.swara-key .ph { font-size:12px; color:#ffffffcc; margin-top:2px; }
+.swara-key .hz { font-size:11px; color:#ffffffaa; margin-top:4px; }
+.swara-key .enharmonic-badge {
+  position:absolute; top:4px; right:4px;
+  background:#fff3; border-radius:3px; padding:1px 4px;
+  font-size:9px; color:#fff; white-space:nowrap;
+}
+
+/* ─── OCTAVE CONTROLS ─────────────────────────────────────────────────── */
+#octave-btns { display:flex; gap:8px; margin-bottom:12px; align-items:center; }
+.oct-btn { padding:4px 12px; font-size:12px; border-radius:4px; }
+.oct-btn.active { background:var(--accent); border-color:var(--accent); color:#000; font-weight:600; }
+
+/* ─── ENHARMONIC TABLE ───────────────────────────────────────────────── */
+.enharmonic-grid {
+  display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px;
+}
+.enharmonic-card {
+  background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+  padding:14px 16px;
+}
+.enharmonic-card h3 { font-size:13px; color:var(--muted); margin-bottom:8px; }
+.enharmonic-pair {
+  display:flex; align-items:center; gap:10px;
+}
+.e-sym {
+  font-size:20px; font-weight:700; padding:6px 12px;
+  border-radius:6px; color:#fff;
+}
+.e-eq { font-size:18px; color:var(--muted); }
+.e-detail { font-size:12px; color:var(--muted); line-height:1.5; }
+.e-ratio { font-size:15px; font-weight:600; color:var(--text); }
+
+/* ─── FULL REFERENCE TABLE ───────────────────────────────────────────── */
+.ref-table {
+  width:100%; border-collapse:collapse; font-size:13px;
+}
+.ref-table th {
+  background:var(--bg3); color:var(--muted); font-weight:600;
+  padding:8px 12px; text-align:left; border-bottom:2px solid var(--border);
+}
+.ref-table td { padding:7px 12px; border-bottom:1px solid var(--border); }
+.ref-table tr:hover td { background:var(--bg3); }
+.sym-cell { font-size:16px; font-weight:700; }
+.achala-tag {
+  background:#d4a01722; border:1px solid var(--accent);
+  color:var(--accent); border-radius:4px; padding:1px 6px;
+  font-size:10px; font-weight:600; margin-left:6px;
+}
+.enharmonic-tag {
+  background:#58a6ff18; border:1px solid var(--accent2);
+  color:var(--accent2); border-radius:4px; padding:1px 6px;
+  font-size:10px;
+}
+.play-cell button {
+  background:var(--bg4); border:1px solid var(--border); color:var(--text);
+  padding:3px 10px; border-radius:4px; cursor:pointer; font-size:12px;
+}
+.play-cell button:hover { background:var(--accent); color:#000; }
+
+/* ─── RAGA SAMPLER ─────────────────────────────────────────────────────── */
+.raga-cards { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:12px; }
+.raga-card {
+  background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+  padding:14px; cursor:pointer; transition:border-color .15s;
+}
+.raga-card:hover { border-color:var(--accent2); }
+.raga-card h3 { font-size:14px; font-weight:600; margin-bottom:6px; color:var(--accent2); }
+.raga-swaras { display:flex; gap:5px; flex-wrap:wrap; margin-top:4px; }
+.raga-swara {
+  padding:2px 8px; border-radius:4px; font-size:13px; font-weight:600; color:#fff;
+}
+.raga-card .play-btn {
+  margin-top:10px; padding:4px 12px; font-size:12px; width:100%;
+  background:var(--bg4); border:1px solid var(--border); color:var(--text);
+  border-radius:4px; cursor:pointer;
+}
+.raga-card .play-btn:hover { background:var(--accent2); color:#000; }
+
+/* ─── FEEDBACK ─────────────────────────────────────────────────────────── */
+.feedback-box {
+  background:var(--bg2); border:1px solid var(--border); border-radius:10px;
+  padding:20px; max-width:600px;
+}
+.feedback-box p { font-size:13px; color:var(--muted); line-height:1.6; margin-bottom:12px; }
+.issue-types { display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px; }
+.issue-type {
+  background:var(--bg3); border:1px solid var(--border); border-radius:4px;
+  padding:4px 10px; font-size:12px; cursor:pointer; color:var(--muted);
+  transition:background .12s;
+}
+.issue-type:hover, .issue-type.sel { background:var(--accent2); color:#fff; border-color:var(--accent2); }
+textarea {
+  width:100%; background:var(--bg3); border:1px solid var(--border); color:var(--text);
+  border-radius:6px; padding:10px; font-size:13px; resize:vertical; min-height:80px;
+  font-family:inherit;
+}
+textarea:focus { outline:none; border-color:var(--accent2); }
+.feedback-actions { display:flex; gap:10px; margin-top:10px; align-items:center; }
+.gh-link {
+  color:var(--accent2); text-decoration:none; font-size:13px;
+  display:inline-flex; align-items:center; gap:4px;
+}
+.gh-link:hover { text-decoration:underline; }
+
+/* ─── INFO CALLOUT ─────────────────────────────────────────────────────── */
+.callout {
+  background:var(--bg2); border-left:3px solid var(--accent2);
+  padding:12px 16px; border-radius:0 6px 6px 0; margin-bottom:16px;
+  font-size:13px; line-height:1.6; color:var(--muted);
+}
+.callout strong { color:var(--text); }
+
+/* ─── NOTE PLAYING INDICATOR ──────────────────────────────────────────── */
+#now-playing {
+  font-size:13px; color:var(--accent); min-height:20px;
+  text-align:center; margin-top:8px; letter-spacing:.5px;
+  transition:opacity .2s;
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="header">
+  <div class="logo">Raga<span>Notate</span></div>
+  <div class="subtitle">Swarasthana Explorer · 12 pitch positions · Just Intonation · Carnatic music</div>
+  <button class="btn" onclick="toggleTheme()">🌓 Theme</button>
+  <a href="raganotate_editor.html" class="btn">← Live Editor</a>
+  <a href="https://github.com/jags111/RagaNotate" target="_blank" class="btn primary">GitHub ↗</a>
+</div>
+
+<!-- CONTROLS -->
+<div id="controls">
+  <div class="ctrl-grp">
+    <span class="ctrl-label">Sa (Adhara Shadjam):</span>
+    <select id="sa-sel" onchange="updateSaHz()">
+      <option value="220">A3 — 220 Hz (common)</option>
+      <option value="240" selected>B♭3 — 240 Hz (classical ref)</option>
+      <option value="261.63">C4 — 261.63 Hz (Middle C)</option>
+      <option value="270">C#4 — 270 Hz</option>
+      <option value="293.66">D4 — 293.66 Hz</option>
+    </select>
+    <span class="sa-val" id="sa-display">240 Hz</span>
+  </div>
+  <div class="ctrl-grp">
+    <span class="ctrl-label">Octave:</span>
+    <div id="octave-btns">
+      <button class="btn oct-btn" onclick="setOctave('mandra')">Mandra (low)</button>
+      <button class="btn oct-btn active" onclick="setOctave('madhya')">Madhya (mid)</button>
+      <button class="btn oct-btn" onclick="setOctave('tara')">Tara (high)</button>
+    </div>
+  </div>
+  <div class="ctrl-grp">
+    <span class="ctrl-label">Sustain:</span>
+    <input type="range" id="sustain" min="0.3" max="2.5" step="0.1" value="1.0">
+    <span class="ctrl-label" id="sustain-val">1.0s</span>
+  </div>
+</div>
+
+<!-- MAIN -->
+<main>
+
+<!-- ── INTERACTIVE KEYBOARD ── -->
+<section>
+  <h2>▶ Playable Swara Keyboard</h2>
+  <div class="callout">
+    <strong>Click any swara key to hear it.</strong> Sa and Pa are highlighted with a gold border — they are <em>achala</em> (immovable) swaras that are fixed in every raga. The remaining 10 positions are <em>chala</em> (movable). Keys marked <strong>= G1 / = N1</strong> etc. indicate enharmonic equivalents — two names sharing the same pitch.
+  </div>
+  <div id="keyboard-wrap">
+    <div id="keyboard"><!-- built by JS --></div>
+  </div>
+  <div id="now-playing"></div>
+</section>
+
+<!-- ── ENHARMONIC PAIRS ── -->
+<section>
+  <h2>The 4 Enharmonic Pairs</h2>
+  <div class="callout">
+    Carnatic music has <strong>16 swarasthana names</strong> but only <strong>12 unique pitch positions</strong>. Four pairs of swarasthana names share the same frequency. In Melakarta system, when building a raga you pick from the R-name column OR the G/D/N-name column — never both, because they are the same note.
+  </div>
+  <div class="enharmonic-grid" id="enharmonic-grid"><!-- built by JS --></div>
+</section>
+
+<!-- ── FULL REFERENCE TABLE ── -->
+<section>
+  <h2>Complete Swarasthana Reference</h2>
+  <div style="overflow-x:auto">
+    <table class="ref-table" id="ref-table">
+      <thead>
+        <tr>
+          <th>Pos</th><th>Symbol</th><th>Full Name</th>
+          <th>Also Known As</th><th>JI Ratio</th><th>Hz @ Sa=240</th>
+          <th>Play</th>
+        </tr>
+      </thead>
+      <tbody id="ref-tbody"><!-- built by JS --></tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ── RAGA SAMPLER ── -->
+<section>
+  <h2>Raga Sampler</h2>
+  <div class="callout">
+    Each raga uses a specific subset of the 12 swarasthana positions. Click <strong>▶ Play Scale</strong> to hear the ascending scale. Notice how different raga flavours emerge simply from which swaras are chosen.
+  </div>
+  <div class="raga-cards" id="raga-cards"><!-- built by JS --></div>
+</section>
+
+<!-- ── THEORY NOTE ── -->
+<section>
+  <h2>Why Just Intonation?</h2>
+  <div class="callout" style="border-color:var(--orange)">
+    <strong>Equal Temperament vs Just Intonation</strong><br><br>
+    A piano divides the octave into 12 perfectly equal semitones. Every interval is slightly "out of tune" by a small amount, but the same for every key — convenient for modulation.<br><br>
+    Carnatic music uses <strong>Just Intonation</strong>: intervals are pure harmonic ratios derived from the overtone series (1/1, 9/8, 5/4, 4/3, 3/2…). These create beatless, resonant consonances. The intervals are not equally spaced — the semitone between Sa and Suddha Ri (16/15) is different in size from the semitone between Suddha Ri and Chatusruti Ri (135/128).<br><br>
+    In MIDI export, RagaNotate compensates for equal-temperament playback using <strong>pitch bend events</strong> to hit the exact JI frequencies.
+  </div>
+</section>
+
+<!-- ── NOTATION QUICK REFERENCE ── -->
+<section>
+  <h2>Notation Quick Reference</h2>
+  <div class="callout">
+    Full specification in <a href="https://github.com/jags111/RagaNotate/blob/main/SPEC.md" target="_blank" style="color:var(--accent2)">SPEC.md</a> · Full editor at <a href="raganotate_editor.html" style="color:var(--accent2)">raganotate_editor.html</a>
+  </div>
+  <table class="ref-table" style="max-width:600px">
+    <thead><tr><th>Symbol</th><th>Meaning</th><th>Example</th></tr></thead>
+    <tbody>
+      <tr><td><code>S R G+ M P D N+ S'</code></td><td>Madhya sthayi swaras</td><td>Shankarabharanam ascending</td></tr>
+      <tr><td><code>.S .R .G+</code></td><td>Mandra (low octave)</td><td>prefix with dot</td></tr>
+      <tr><td><code>S' R' G+'</code></td><td>Tara (high octave)</td><td>suffix with apostrophe</td></tr>
+      <tr><td><code>S;</code></td><td>Double duration</td><td>held for 2 aksharas</td></tr>
+      <tr><td><code>S:</code></td><td>Half duration</td><td>quick passing note</td></tr>
+      <tr><td><code>R~</code></td><td>Kampita gamaka</td><td>vibrato/oscillation</td></tr>
+      <tr><td><code>G+/M</code></td><td>Jaru ascending</td><td>slide up to M</td></tr>
+      <tr><td><code>N\D</code></td><td>Jaru descending</td><td>slide down to D</td></tr>
+      <tr><td><code>\|</code></td><td>Bar separator</td><td>marks beat boundary</td></tr>
+      <tr><td><code>\|\|</code></td><td>Section end</td><td>marks composition end</td></tr>
+      <tr><td><code>-</code></td><td>Rest</td><td>silence for one akshara</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ── FEEDBACK ── -->
+<section>
+  <h2>Report an Issue / Give Feedback</h2>
+  <div class="feedback-box">
+    <p>Found a wrong ratio? A raga that's incorrectly defined? A notation quirk? Open a GitHub Issue directly — select a category and describe the problem. Your expertise in Carnatic music makes this project better.</p>
+
+    <div class="issue-types" id="issue-types">
+      <span class="issue-type" onclick="selectIssue(this,'Swara/Ratio Error')">Swara or Ratio Error</span>
+      <span class="issue-type" onclick="selectIssue(this,'Raga Grammar Error')">Raga Grammar Error</span>
+      <span class="issue-type" onclick="selectIssue(this,'Gamaka Encoding')">Gamaka Encoding</span>
+      <span class="issue-type" onclick="selectIssue(this,'Tala Error')">Tala Error</span>
+      <span class="issue-type" onclick="selectIssue(this,'UI Bug')">UI Bug</span>
+      <span class="issue-type" onclick="selectIssue(this,'Feature Request')">Feature Request</span>
+      <span class="issue-type" onclick="selectIssue(this,'Other')">Other</span>
+    </div>
+
+    <textarea id="feedback-text" placeholder="Describe the issue…&#10;&#10;Example: Bhairavi should use Suddha Dha (d=8/5), not Chatusruti Dha (D=5/3)."
+      rows="4"></textarea>
+
+    <div class="feedback-actions">
+      <button class="btn primary" onclick="openGithubIssue()">Open GitHub Issue ↗</button>
+      <span style="font-size:12px;color:var(--muted)">— will open a new tab with the text pre-filled</span>
+    </div>
+
+    <p style="margin-top:12px">
+      Direct link: <a class="gh-link" href="https://github.com/jags111/RagaNotate/issues/new" target="_blank">
+        github.com/jags111/RagaNotate/issues/new ↗
+      </a>
+    </p>
+  </div>
+</section>
+
+</main>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════════════
+// DATA — 12-position swarasthana system, standard 5-limit JI ratios v0.1.5
+// ═══════════════════════════════════════════════════════════════════════════
+const SWARAS = [
+  { sym:'S',  ph:'Sa',  token:'SA_0', ratio:1,       achala:true,  grp:'sa', pos:1,  alias:null,    fullName:'Shadjam' },
+  { sym:'r',  ph:'Ra',  token:'RI_1', ratio:16/15,   achala:false, grp:'ri', pos:2,  alias:null,    fullName:'Suddha Rishabham (R1)' },
+  { sym:'R',  ph:'Ri',  token:'RI_2', ratio:9/8,     achala:false, grp:'ri', pos:3,  alias:'= G1',  fullName:'Chatusruti Rishabham (R2) / Suddha Gandharam (G1)' },
+  { sym:'g',  ph:'Ga',  token:'GA_2', ratio:6/5,     achala:false, grp:'ga', pos:4,  alias:'= G2',  fullName:'Shatshruti Rishabham (R3) / Sadharana Gandharam (G2)' },
+  { sym:'G+', ph:'Gu',  token:'GA_3', ratio:5/4,     achala:false, grp:'ga', pos:5,  alias:null,    fullName:'Antara Gandharam (G3)' },
+  { sym:'m',  ph:'Ma',  token:'MA_1', ratio:4/3,     achala:false, grp:'ma', pos:6,  alias:null,    fullName:'Suddha Madhyamam (M1)' },
+  { sym:'M',  ph:'Mi',  token:'MA_2', ratio:45/32,   achala:false, grp:'ma', pos:7,  alias:null,    fullName:'Prati Madhyamam (M2)' },
+  { sym:'P',  ph:'Pa',  token:'PA_0', ratio:3/2,     achala:true,  grp:'pa', pos:8,  alias:null,    fullName:'Panchamam' },
+  { sym:'d',  ph:'Da',  token:'DA_1', ratio:8/5,     achala:false, grp:'da', pos:9,  alias:null,    fullName:'Suddha Dhaivatam (D1)' },
+  { sym:'D',  ph:'Dha', token:'DA_2', ratio:5/3,     achala:false, grp:'da', pos:10, alias:'= N1',  fullName:'Chatusruti Dhaivatam (D2) / Suddha Nishadam (N1)' },
+  { sym:'n',  ph:'Ni',  token:'NI_2', ratio:9/5,     achala:false, grp:'ni', pos:11, alias:'= N2',  fullName:'Shatshruti Dhaivatam (D3) / Kaisika Nishadam (N2)' },
+  { sym:'N+', ph:'Nu',  token:'NI_3', ratio:15/8,    achala:false, grp:'ni', pos:12, alias:null,    fullName:'Kakali Nishadam (N3)' },
+];
+
+const ENHARMONIC_PAIRS = [
+  { pos:3,  sym:'R',  aliasName:'G1 (Suddha Gandharam)', ratio:'9/8',   hz:270.00, grp:'ri' },
+  { pos:4,  sym:'g',  aliasName:'G2/R3 (Sadharana Ga)',   ratio:'6/5',   hz:288.00, grp:'ga' },
+  { pos:10, sym:'D',  aliasName:'N1 (Suddha Nishadam)',   ratio:'5/3',   hz:400.00, grp:'da' },
+  { pos:11, sym:'n',  aliasName:'N2/D3 (Kaisika Ni)',     ratio:'9/5',   hz:432.00, grp:'ni' },
+];
+
+const RAGA_DATA = [
+  { name:'Hamsadhvani',     swaras:['S','R','G+','P','N+'],       mood:'Joyful, auspicious, opening' },
+  { name:'Shankarabharanam',swaras:['S','R','G+','m','P','D','N+'], mood:'Majestic, complete — analogous to C major' },
+  { name:'Kalyani',         swaras:['S','R','G+','M','P','D','N+'], mood:'Serene, bright, evening' },
+  { name:'Bhairavi',        swaras:['S','r','g','m','P','d','n'],  mood:'Devotional, poignant, morning' },
+  { name:'Mohanam',         swaras:['S','R','G+','P','D'],         mood:'Pleasant, pentatonic, folk-like' },
+  { name:'Bilahari',        swaras:['S','R','G+','P','D','N+'],    mood:'Cheerful, festive, light' },
+  { name:'Todi',            swaras:['S','r','g','m','P','d','N+'], mood:'Intense, complex, morning' },
+  { name:'Kharaharapriya',  swaras:['S','R','g','m','P','D','n'], mood:'Meditative, versatile — analogous to D dorian' },
+];
+
+const GRP_COLOR = {
+  sa:'#d4a017', ri:'#58a6ff', ga:'#3fb950', ma:'#bc8cff',
+  pa:'#d4a017', da:'#f85149', ni:'#ffa657',
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════════
+let saHz = 240;
+let octave = 'madhya';
+let sustain = 1.0;
+let audioCtx = null;
+let selectedIssueType = '';
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AUDIO
+// ═══════════════════════════════════════════════════════════════════════════
+function getAudioCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  return audioCtx;
+}
+
+function playFreq(freq, durSec) {
+  const ctx = getAudioCtx();
+  const now = ctx.currentTime;
+  const masterGain = ctx.createGain();
+  masterGain.connect(ctx.destination);
+
+  // Bansuri-like timbre: fundamental + harmonics
+  const harmonics = [
+    { mult:1, amp:0.55 },
+    { mult:2, amp:0.22 },
+    { mult:3, amp:0.12 },
+    { mult:4, amp:0.06 },
+    { mult:5, amp:0.03 },
+  ];
+
+  harmonics.forEach(({ mult, amp }) => {
+    const osc = ctx.createOscillator();
+    const g   = ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = freq * mult;
+    g.gain.setValueAtTime(0, now);
+    g.gain.linearRampToValueAtTime(amp, now + 0.02);
+    g.gain.setValueAtTime(amp, now + durSec * 0.7);
+    g.gain.exponentialRampToValueAtTime(0.001, now + durSec);
+    osc.connect(g);
+    g.connect(masterGain);
+    osc.start(now);
+    osc.stop(now + durSec + 0.05);
+  });
+
+  // Master envelope
+  masterGain.gain.setValueAtTime(0.6, now);
+  masterGain.gain.setValueAtTime(0.6, now + durSec * 0.7);
+  masterGain.gain.exponentialRampToValueAtTime(0.001, now + durSec + 0.05);
+}
+
+function octaveMultiplier(oct) {
+  return oct === 'mandra' ? 0.5 : oct === 'tara' ? 2 : 1;
+}
+
+function playSwaraBySymbol(sym, oct) {
+  const sw = SWARAS.find(s => s.sym === sym);
+  if (!sw) return;
+  const freq = saHz * sw.ratio * octaveMultiplier(oct || octave);
+  playFreq(freq, sustain);
+  showNowPlaying(sw, freq);
+}
+
+async function playScale(syms) {
+  for (let i = 0; i < syms.length; i++) {
+    const sw = SWARAS.find(s => s.sym === syms[i]);
+    if (!sw) continue;
+    const freq = saHz * sw.ratio;
+    playFreq(freq, 0.6);
+    await new Promise(r => setTimeout(r, 420));
+  }
+}
+
+function showNowPlaying(sw, freq) {
+  const el = document.getElementById('now-playing');
+  el.style.opacity = '1';
+  el.textContent = `▶ ${sw.sym} · ${sw.ph} · ${sw.fullName} · ${freq.toFixed(2)} Hz`;
+  clearTimeout(el._timer);
+  el._timer = setTimeout(() => { el.style.opacity = '0'; }, 3000);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KEYBOARD
+// ═══════════════════════════════════════════════════════════════════════════
+function buildKeyboard() {
+  const kb = document.getElementById('keyboard');
+  kb.innerHTML = '';
+  SWARAS.forEach(sw => {
+    const key = document.createElement('div');
+    key.className = 'swara-key' + (sw.achala ? ' achala' : '');
+    key.style.background = `linear-gradient(160deg, ${GRP_COLOR[sw.grp]}, ${GRP_COLOR[sw.grp]}88)`;
+    key.style.flex = sw.achala ? '1.2' : '1';
+
+    const hzVal = (saHz * sw.ratio * octaveMultiplier(octave)).toFixed(2);
+
+    key.innerHTML = `
+      ${sw.alias ? `<div class="enharmonic-badge">${sw.alias}</div>` : ''}
+      <div class="sym">${sw.sym}</div>
+      <div class="ph">${sw.ph}</div>
+      <div class="hz">${hzVal} Hz</div>
+    `;
+
+    key.onclick = () => {
+      key.classList.add('playing');
+      setTimeout(() => key.classList.remove('playing'), 300);
+      playSwaraBySymbol(sw.sym, octave);
+    };
+
+    kb.appendChild(key);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ENHARMONIC GRID
+// ═══════════════════════════════════════════════════════════════════════════
+function buildEnharmonicGrid() {
+  const grid = document.getElementById('enharmonic-grid');
+  grid.innerHTML = '';
+  ENHARMONIC_PAIRS.forEach(pair => {
+    const sw = SWARAS.find(s => s.sym === pair.sym);
+    const card = document.createElement('div');
+    card.className = 'enharmonic-card';
+    card.innerHTML = `
+      <h3>Position ${pair.pos} — ${pair.ratio} = ${(saHz * sw.ratio).toFixed(2)} Hz</h3>
+      <div class="enharmonic-pair">
+        <div class="e-sym" style="background:${GRP_COLOR[pair.grp]}">${pair.sym}</div>
+        <div class="e-eq">⟺</div>
+        <div class="e-detail">
+          <div class="e-ratio">${pair.aliasName}</div>
+          <div style="font-size:11px;margin-top:2px">Same pitch, different Melakarta context</div>
+        </div>
+      </div>
+      <button class="btn" style="margin-top:10px;font-size:12px;width:100%"
+        onclick="playSwaraBySymbol('${pair.sym}')">▶ Hear ${sw.ph} / ${pair.ratio}</button>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REFERENCE TABLE
+// ═══════════════════════════════════════════════════════════════════════════
+function buildRefTable() {
+  const tbody = document.getElementById('ref-tbody');
+  tbody.innerHTML = '';
+
+  // Helper: ratio to fraction string
+  function ratioStr(r) {
+    const fracs = {1:'1/1', [16/15]:'16/15', [9/8]:'9/8', [6/5]:'6/5', [5/4]:'5/4',
+                   [4/3]:'4/3', [45/32]:'45/32', [3/2]:'3/2', [8/5]:'8/5',
+                   [5/3]:'5/3', [9/5]:'9/5', [15/8]:'15/8'};
+    return fracs[r] || r.toFixed(5);
+  }
+
+  SWARAS.forEach(sw => {
+    const hz = (240 * sw.ratio).toFixed(2);  // always show at 240 Hz ref
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${sw.pos}</td>
+      <td class="sym-cell" style="color:${GRP_COLOR[sw.grp]}">${sw.sym}
+        ${sw.achala ? '<span class="achala-tag">achala</span>' : ''}
+      </td>
+      <td style="font-size:12px">${sw.fullName}</td>
+      <td>${sw.alias ? `<span class="enharmonic-tag">${sw.alias}</span>` : '<span style="color:var(--muted)">—</span>'}</td>
+      <td style="font-family:monospace">${ratioStr(sw.ratio)}</td>
+      <td style="font-family:monospace">${hz}</td>
+      <td class="play-cell"><button onclick="playSwaraBySymbol('${sw.sym}')">▶</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// RAGA CARDS
+// ═══════════════════════════════════════════════════════════════════════════
+function buildRagaCards() {
+  const container = document.getElementById('raga-cards');
+  container.innerHTML = '';
+  RAGA_DATA.forEach(raga => {
+    const card = document.createElement('div');
+    card.className = 'raga-card';
+    const pillsHtml = raga.swaras.map(sym => {
+      const sw = SWARAS.find(s => s.sym === sym);
+      const col = sw ? GRP_COLOR[sw.grp] : '#888';
+      return `<span class="raga-swara" style="background:${col}">${sym}</span>`;
+    }).join('');
+
+    card.innerHTML = `
+      <h3>${raga.name}</h3>
+      <div style="font-size:11px;color:var(--muted);margin-bottom:6px">${raga.mood}</div>
+      <div class="raga-swaras">${pillsHtml}</div>
+      <button class="play-btn" onclick="playRaga('${raga.name}')">▶ Play Scale</button>
+    `;
+    container.appendChild(card);
+  });
+}
+
+async function playRaga(name) {
+  const raga = RAGA_DATA.find(r => r.name === name);
+  if (!raga) return;
+  await playScale(raga.swaras);
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONTROLS
+// ═══════════════════════════════════════════════════════════════════════════
+function updateSaHz() {
+  saHz = parseFloat(document.getElementById('sa-sel').value);
+  document.getElementById('sa-display').textContent = saHz + ' Hz';
+  buildKeyboard();
+  buildRefTable();
+  buildEnharmonicGrid();
+}
+
+function setOctave(oct) {
+  octave = oct;
+  document.querySelectorAll('.oct-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  buildKeyboard();
+}
+
+document.getElementById('sustain').addEventListener('input', function() {
+  sustain = parseFloat(this.value);
+  document.getElementById('sustain-val').textContent = sustain.toFixed(1) + 's';
+});
+
+function toggleTheme() {
+  const html = document.documentElement;
+  html.dataset.theme = html.dataset.theme === 'light' ? '' : 'light';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FEEDBACK
+// ═══════════════════════════════════════════════════════════════════════════
+function selectIssue(el, type) {
+  selectedIssueType = type;
+  document.querySelectorAll('.issue-type').forEach(e => e.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+function openGithubIssue() {
+  const text = document.getElementById('feedback-text').value.trim();
+  const issueType = selectedIssueType || 'Feedback';
+  const title = encodeURIComponent(`[${issueType}] `);
+  const body = encodeURIComponent(
+    (text || `Please describe the issue here.`) +
+    `\n\n---\n*Reported via RagaNotate Swarasthana Explorer · v0.1.5*`
+  );
+  const url = `https://github.com/jags111/RagaNotate/issues/new?title=${title}&body=${body}`;
+  window.open(url, '_blank');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// KEYBOARD SHORTCUTS
+// ═══════════════════════════════════════════════════════════════════════════
+const KEY_MAP = {
+  'a':'S', 'w':'r', 's':'R', 'e':'g', 'd':'G+',
+  'f':'m', 't':'M', 'g':'P', 'y':'d', 'h':'D',
+  'u':'n', 'j':'N+', 'k':"S'",
+};
+window.addEventListener('keydown', e => {
+  if (e.target.tagName === 'TEXTAREA' || e.target.tagName === 'INPUT') return;
+  const sym = KEY_MAP[e.key.toLowerCase()];
+  if (sym) {
+    const oct = sym.endsWith("'") ? 'tara' : octave;
+    const cleanSym = sym.replace("'", '');
+    const key = Array.from(document.querySelectorAll('.swara-key'))
+      .find(k => k.querySelector('.sym')?.textContent === cleanSym);
+    if (key) { key.classList.add('playing'); setTimeout(() => key.classList.remove('playing'), 300); }
+    playSwaraBySymbol(cleanSym, oct);
+  }
+});
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════════
+buildKeyboard();
+buildEnharmonicGrid();
+buildRefTable();
+buildRagaCards();
+</script>
+</body>
+</html>

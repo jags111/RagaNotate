@@ -1,7 +1,7 @@
 # RagaNotate — Session State & Recovery Guide
 
-> **Last updated:** 2026-03-12
-> **Current version:** v0.1.4
+> **Last updated:** 2026-03-14
+> **Current version:** v0.2.0
 > **GitHub:** https://github.com/jags111/RagaNotate
 > **Owner:** Jags · info@revsmartasia.com · github.com/jags111
 
@@ -20,10 +20,11 @@ If context is lost, share this file with Claude and say:
 
 A domain-specific language (ASCII notation) + parser + SVG renderer + MIDI exporter + Web UI + AI tokenizer for Carnatic music compositions.
 
-- Notation: `| S R~ G+ M | P D N+ S' ||` (ASCII, human-readable)
+- Notation: `| S R~ G+ M | P D N+ S' ||` (ASCII input, Unicode display: Ṡ Ṙ Ġ for tara, Ṣ Ṛ G̣ for mandra)
 - Python library: parse, render SVG, export MIDI, encode for AI/ML
 - TypeScript library: same features for browser/Node.js
-- Web UI: live CodeMirror editor → real-time SVG preview + tala beat clock + shruti drone
+- Web UI: three-tab editor — Notation Editor | Geetham/Composition Editor | Raga Reference
+- 72 Melakarta raga DB: full reference in `References/RAGA_DATABASE.md`; 30+ ragas in editor dropdown
 
 ---
 
@@ -69,7 +70,8 @@ RagaNotate/
 │           └── audio.ts
 │
 ├── web/
-│   └── raganotate_editor.html ← Self-contained live editor (1318 lines)
+│   ├── raganotate_editor.html ← Self-contained live editor v0.2.0 (1621 lines) — three-tab layout
+│   └── swarasthana_explorer.html ← Interactive 16-swarasthana reference tool (700 lines)
 │
 ├── dataset/
 │   ├── sawarsthanam.xlsx      ← Swarasthana reference (v0.1.3 corrected)
@@ -92,9 +94,21 @@ RagaNotate/
   Sa Ri  Ga Ma   Pa Dha Ni  Sa'(tara)
 
 Octave:   .S .R (mandra/low)  |  S R (madhya/mid)  |  S' R' (tara/high)
+          Ṣ Ṛ   (Unicode mandra, dot-below)  |  S R (plain)  |  Ṡ Ṙ (dot-above tara)
 Duration: S; = 2×  S: = ½×  S:: = ¼×
-Gamakas:  ~ kampita  / jaru-up  \ jaru-down  ^ sphurita  w andola  v pratyaghata
+Gamakas:  ~ kampita  / jaru-up  \ jaru-down  ^ sphurita  w andola  v pratyaghata  * nokku
 Bars:     | beat bar  || section end  , half-beat  - rest
+```
+
+### Geetham Notation Format (v0.2.0 — Jayakaru Geetam standard)
+```
+{title}  Raga: Dhanyasi  Tala: Chaturashra Dhruvam
+
+PALLAVI:
+Notation: N  D  P  |  N  |  S  ,  |  N  S  G  ,  |  M  G  R  S  ||
+Lyrics:   ja ya ku    ru    na¯      .  sin .  .     dho .  .  .  ||
+
+. = melisma (syllable continues)  ¯ = elongated vowel
 ```
 
 ### Swarasthana Symbols (v0.1.3 corrected ratios)
@@ -120,7 +134,10 @@ Bars:     | beat bar  || section end  , half-beat  - rest
 - **tala.py** `TalaEngine` class — `start()`, `stop()`, beat events
 - **midi_generator.py** `MidiGenerator` class — install MIDIUtil (capital M+U)
 - **tala.ts** `TalaEngine` class — `start()` / `stop()` / `runSync()` / `validateBar()`
-- **raganotate_editor.html** — self-contained, open in any browser (no server)
+- **raganotate_editor.html** — self-contained, open in any browser; three-tab layout (Notation | Geetham | Raga Ref)
+- **swarasthana_explorer.html** — interactive swara pitch explorer with playback
+- **`normalizeUnicode()`** in editor — converts Ṡ→S', R₁→r etc. for parser compatibility
+- **`RAGA_DB`** in editor — 30+ ragas including all Melakarta groups M1+M2
 
 ---
 
@@ -128,7 +145,8 @@ Bars:     | beat bar  || section end  , half-beat  - rest
 
 | Version | Date | What Changed |
 |---------|------|-------------|
-| **0.1.4** | 2026-03-12 | Web UI editor + TalaEngine TS + raga highlighting + notation playback |
+| **0.2.0** | 2026-03-14 | Canonical notation standard + 72 Melakarta DB + Geetham Editor + swarasthana_explorer.html |
+| 0.1.4 | 2026-03-12 | Web UI editor + TalaEngine TS + raga highlighting + notation playback |
 | 0.1.3 | 2026-03-11 | 7 swarasthana ratio corrections (Option B from sawarsthanam.xlsx) |
 | 0.1.2 | 2026-03-10 | TS parser.ts + renderer.ts + ai_encoder.py + all Python tests pass |
 | 0.1.1 | 2026-03-10 | Spec refinement + lyrics-to-notation architecture |
@@ -143,19 +161,22 @@ Bars:     | beat bar  || section end  , half-beat  - rest
   - Guide: `docs/midi_test.md`
 - [ ] **Raga grammar CodeMirror lint**: Highlight out-of-raga swaras in the editor pane itself (not just SVG)
   - The raga validation logic exists: `getActiveRagaSwaras()` + `getRagaViolations()`
+- [ ] **Fix git index.lock**: Delete `C:\Users\sunde\AI_dance\RagaNotate\.git\index.lock` from Windows CMD, then commit via GitHub Desktop
+- [ ] **Remove stray init.py files**: Delete from Windows Explorer — `dataset/`, `packages/`, `web/`, `examples/`, `spec/` (5 files)
 
 ### Medium Priority
+- [ ] **Expand raga dropdown to full 72 Melakarta** — use RAGA_DATABASE.md in `References/` as source
 - [ ] **HuggingFace dataset** — Annotate 10+ Carnatic compositions in JSON using `ai_encoder.ast_to_dataset_record()`
   - Target: `dataset/annotated/` folder
-  - Suggested pieces: Vathapi Ganapathim, Vatapi, Endaro Mahanubhavulu, Nagumomu, Sarasiruha
+  - First entry: Jayakaru Geetam (Dhanyasi, Chaturashra Dhruvam) — already in Geetham Editor
 - [ ] **tala.ts npm build** — `npm run build` to verify TypeScript compiles (needs local Node.js)
-- [ ] **Browser MIDI export** — Add "⬇ Export MIDI" button in web editor using Web MIDI API or downloadable binary
+- [ ] **Browser MIDI export** — Add "⬇ Export MIDI" button in web editor
 
 ### Lower Priority
-- [ ] **PyPI publish**: `pip install raganotate` — needs twine + PyPI account setup
+- [ ] **PDF/docx export** for Geetham compositions
+- [ ] **PyPI publish**: `pip install raganotate` — needs twine + PyPI account
 - [ ] **npm publish**: `npm publish @jags111/raganotate` — needs npm account
 - [ ] **Python test suite**: `pytest packages/python/` — all 8 modules with edge cases
-- [ ] **Raga database expansion**: Currently 8 ragas; target 72 Melakarta ragas
 
 ---
 
